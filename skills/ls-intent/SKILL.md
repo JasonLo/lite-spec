@@ -37,31 +37,7 @@ This skill has two modes: **draft** (no `specs/2_INTENT.md` exists for this scop
    - **Unstated dependencies** — external services, libraries, or upstream work the outcome silently requires.
    Incorporate fixes by asking the user about each flag, or by adjusting language directly when the fix is trivial.
 5. **Validate against the constitution.** Walk each constitutional principle and confirm the intent doesn't violate it. If a violation exists, refuse to finalize and tell the user which principle is blocking — they MUST either revise the intent or invoke `ls-constitution` to amend the principle.
-6. **Write `specs/2_INTENT.md`** (or at the scoped location if the user named a subdirectory). Create `specs/` if it does not yet exist. Use the layout:
-
-```markdown
-# Intent Doc: <name>
-
-- **Author:** <user>
-- **Status:** Draft
-- **Last updated:** YYYY-MM-DD
-
-## Problem
-...
-
-## Outcome
-- **WHEN** ... **THE SYSTEM SHALL** ...
-
-## Non-Goals
-- ...
-
-## Constraints
-- ...
-
-## Change Log
-- **YYYY-MM-DD** — Initial draft.
-```
-
+6. **Write `specs/2_INTENT.md`** (or at the scoped location if the user named a subdirectory). Create `specs/` if it does not yet exist. The exact structure lives in [`INTENT.template.md`](INTENT.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<name>`, `<user>`, and `YYYY-MM-DD` with the inferred or user-supplied values, fill the section bodies with the elicited content, and write the result to `specs/2_INTENT.md`. Keep section headings verbatim so `ls-check` and other skills can grep for them.
 7. **Auto-trigger `ls-check`** with the new doc, treating this as an initial-draft Change Log entry. If `ls-check` is not installed, note that drift verification should be run manually once the implementation exists.
 8. **Report** word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved.
 
