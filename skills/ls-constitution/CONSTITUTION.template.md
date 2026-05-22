@@ -1,5 +1,7 @@
 # Constitution: <project-name>
 
+Version: 1.0.0 · Ratified: YYYY-MM-DD
+
 Non-negotiable project principles. Every other `ls-` skill validates its output against this file and refuses to produce violating output.
 
 ## Scope and surface area
@@ -7,6 +9,10 @@ Non-negotiable project principles. Every other `ls-` skill validates its output 
 <numbered MUST/SHALL/NEVER principles>
 
 ## Stack choice
+
+<numbered MUST/SHALL/NEVER principles>
+
+## Architecture
 
 <numbered MUST/SHALL/NEVER principles>
 
@@ -26,6 +32,14 @@ Non-negotiable project principles. Every other `ls-` skill validates its output 
 
 <numbered MUST/SHALL/NEVER principles>
 
+## Testing
+
+<numbered MUST/SHALL/NEVER principles>
+
+## Security
+
+<numbered MUST/SHALL/NEVER principles>
+
 ## Amendments
 
-- **YYYY-MM-DD** — Initial constitution ratified.
+- **YYYY-MM-DD** — Initial constitution ratified (v1.0.0).

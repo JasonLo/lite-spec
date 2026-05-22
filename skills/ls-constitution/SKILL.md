@@ -19,16 +19,19 @@ This skill has two modes: **ratify** (no constitution exists yet) and **amend** 
 ## Mode 1 — Ratify (no 1_CONSTITUTION.md yet)
 
 1. **Confirm absence.** Check `specs/`. If `specs/1_CONSTITUTION.md` exists, switch to amend mode instead.
-2. **Elicit principles.** Walk the user through six buckets, asking one focused question per bucket. Skip a bucket only if the user explicitly says it's not applicable.
-   - **Scope and surface area** — what the project is and is not, surface-area limits, naming conventions.
+2. **Elicit principles.** Walk the user through nine buckets, asking one focused question per bucket. Skip a bucket only if the user explicitly says it's not applicable.
+   - **Scope and surface area** — what the project is and is not (non-goals), surface-area limits, naming conventions.
    - **Stack choice** — runtime/language, primary framework(s), dependency manager, deployment target, persistence/storage. What's locked in vs. negotiable.
+   - **Architecture** — layering rules, allowed patterns, simplicity/anti-abstraction clauses, module boundaries.
    - **File format** — required structure for any artifacts the project produces (frontmatter, length caps, headings).
    - **Artifacts** — where things live, format (plain text vs. structured), append-only rules.
    - **Boundaries** — what the project MUST NOT do, integrations it MUST NOT add.
-   - **Code quality** — typing, testing, simplicity guardrails.
+   - **Code quality** — typing, linting, complexity ceilings, review requirements.
+   - **Testing** — required coverage, test-first vs. test-after, unit/integration/e2e balance.
+   - **Security** — authn/authz rules, input validation, secrets handling, dependency-CVE policy.
 3. **Phrase every principle in MUST/SHALL/NEVER form.** If the user says "we prefer X" or "try to do Y", push back: *"Should this be a hard rule or a soft preference? The constitution only holds hard rules — soft preferences belong in docs."* If hard, rewrite as MUST/SHALL/NEVER. If soft, drop it.
 4. **Number the principles** sequentially across the whole doc, and group them under the six bucket headings that apply.
-5. **Write `specs/1_CONSTITUTION.md`.** Create `specs/` if it does not yet exist. The exact structure lives in [`CONSTITUTION.template.md`](CONSTITUTION.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<project-name>` with the inferred or user-supplied name, replace each `<numbered MUST/SHALL/NEVER principles>` placeholder with the elicited principles for that bucket, drop any bucket the user marked not applicable, and write the result to `specs/1_CONSTITUTION.md`. Keep the bucket headings and the `## Amendments` heading verbatim so other skills can grep for them; the Amendments section is pre-seeded with the initial-ratification line — substitute `YYYY-MM-DD` with today's date.
+5. **Write `specs/1_CONSTITUTION.md`.** Create `specs/` if it does not yet exist. The exact structure lives in [`CONSTITUTION.template.md`](CONSTITUTION.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<project-name>` with the inferred or user-supplied name, replace each `<numbered MUST/SHALL/NEVER principles>` placeholder with the elicited principles for that bucket, drop any bucket the user marked not applicable, and write the result to `specs/1_CONSTITUTION.md`. Keep the bucket headings and the `## Amendments` heading verbatim so other skills can grep for them. Substitute both `YYYY-MM-DD` placeholders (the preamble `Ratified:` line and the Amendments seed line) with today's date; leave `Version: 1.0.0` as-is.
 6. **Update `CLAUDE.md`** at the repo root: ensure it contains a one-line pointer like *"`specs/1_CONSTITUTION.md` — non-negotiable project principles. Every skill MUST validate its output against the constitution and refuse to produce violating output."* If `CLAUDE.md` doesn't exist, create a minimal one with that pointer plus pointers to `specs/2_INTENT.md` and `specs/3_DECISIONS.md` (even if those don't exist yet — the pointers stay valid).
 7. **Report** the principle count and the buckets used.
 
@@ -52,8 +55,12 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
    - For *modify*: edit the principle in place; do NOT delete the prior phrasing if it changes the principle's meaning — instead, mark it as superseded inline (`~~old text~~ [superseded YYYY-MM-DD]`) and add the new text below.
    - For *retire*: mark the principle as retired (`~~Principle N: ...~~ [retired YYYY-MM-DD, reason]`) and renumber NOTHING — numbers are stable identifiers.
    - For *add*: append the new principle at the end of its bucket with the next sequential number.
-6. **Append to `## Amendments`** with date, what changed, and the user's reason.
-7. **Report** the diff, the impact list, and a suggestion to run `ls-check` if any intents or code were flagged as affected.
+6. **Bump the `Version:` line in the preamble** using semver:
+   - **MAJOR** — a principle is retired, or an existing principle's meaning changes incompatibly.
+   - **MINOR** — a new principle or bucket is added, or guidance is materially expanded.
+   - **PATCH** — wording, typo, or clarification with no semantic change.
+7. **Append to `## Amendments`** with date, new version, what changed, and the user's reason.
+8. **Report** the diff, the new version, the impact list, and a suggestion to run `ls-check` if any intents or code were flagged as affected.
 
 ## Validation Rules You MUST Enforce
 
@@ -65,9 +72,9 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
 ## Output Contract
 
 - A single `specs/1_CONSTITUTION.md` with:
-  - A short preamble.
+  - A preamble with a `Version:` and `Ratified:` line.
   - Numbered principles grouped under bucket headings.
-  - An `## Amendments` section, append-only.
+  - An `## Amendments` section, append-only, with the current version reflected in the preamble.
 - A `CLAUDE.md` pointer at the repo root referencing `specs/1_CONSTITUTION.md`.
 - A short stdout report: principle count, buckets touched, and (for amendments) the impact list.
 
