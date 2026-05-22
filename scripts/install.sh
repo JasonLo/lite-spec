@@ -106,6 +106,6 @@ cat <<EOF
 lite-spec: installed into ${DEST}
   skills:${INSTALLED}
 
-Done! Invoke any skill in Claude Code by name (e.g. /ls-intent) or by describing the task.
+Next: open a project in Claude Code and run /ls-init to bootstrap it.
 Re-run this script to update.
 EOF

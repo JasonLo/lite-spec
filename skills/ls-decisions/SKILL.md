@@ -33,7 +33,7 @@ Append-only log of non-trivial decisions. Each entry: `D-NNNN: Decided X because
 6. **Check durability.** The entry MUST still make sense 6 months later. If the "because Y" reduces to "because we wanted to" or "because it's better", push back and ask for a concrete tradeoff (what was the alternative, what made this one win). If the user genuinely can't articulate a tradeoff, the decision probably isn't durable enough to log — say so.
 7. **Aim for under 25 words.** A decision entry is one sentence, not a paragraph. If the rationale needs more, link to an INTENT or a doc rather than expanding inline.
 8. **Append** the entry to `specs/3_DECISIONS.md`.
-9. **Update `CLAUDE.md`.** Ensure `CLAUDE.md` at the repo root contains a pointer line like *"See `specs/3_DECISIONS.md` for past architectural choices and rationale."* — add it if missing. Do NOT inline the decisions log content into `CLAUDE.md`; the pointer keeps context lean (progressive disclosure).
+9. **Check the `CLAUDE.md` pointer block.** Look for the anchor heading `## Read before non-trivial work` in `CLAUDE.md` at the repo root — this is the unique heading `ls-init` writes via its template. If the anchor is present, the pointer block is already wired; do nothing. If the anchor is missing (or `CLAUDE.md` itself is missing), tell the user to run `/ls-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill — `ls-init` is the single source of truth for `CLAUDE.md`.
 10. **Report** the new ID, the entry text, and a confirmation that the constitution check passed.
 
 ## Mode 2 — Supersede
@@ -54,7 +54,7 @@ Append-only log of non-trivial decisions. Each entry: `D-NNNN: Decided X because
 
 ## Direct writes (without invoking this skill)
 
-This skill is the **guided path** — it elicits, deduplicates, checks durability, and reports a constitution-validation result. Per Constitution §16, `specs/3_DECISIONS.md` is AGENT-WRITABLE: AI agents MAY also write to it directly when speed matters, subject to these rules:
+This skill is the **guided path** — it elicits, deduplicates, checks durability, and reports a constitution-validation result. But `specs/3_DECISIONS.md` is agent-writable by design — AI agents MAY also write to it directly when speed matters, subject to these rules:
 
 1. **Read the constitution first.** If `specs/1_CONSTITUTION.md` exists, cross-check the proposed entry against every principle. If it violates a principle, do not write — surface the conflict and stop. (Same blocking rule as Mode 1 step 5.)
 2. **Follow the format spec exactly.** `D-NNNN: Decided X because Y (YYYY-MM-DD).` — four-digit sequential ID (scan existing entries for the next number), entry under 25 words, rationale must reference a tradeoff/constraint/external requirement (no bare "because we decided" or "because it's better").
@@ -74,12 +74,12 @@ When in doubt — durability is unclear, the human's position is ambiguous, the 
 ## Output Contract
 
 - `specs/3_DECISIONS.md`, append-only.
-- `CLAUDE.md` pointer ensured.
+- `CLAUDE.md` pointer block presence verified (delegated to `ls-init`; this skill does not write `CLAUDE.md`).
 - A short stdout report: new ID, entry text, constitution-check status, and (for supersede) the ID being replaced.
 
 ## What This Skill MUST NOT Do
 
 - NEVER delete or rewrite the content of a past decision line. Strikethrough + annotation only.
-- NEVER inline the full DECISIONS log into `CLAUDE.md` — keep it as a pointer.
+- NEVER write to `CLAUDE.md` directly — pointer block ownership belongs to `ls-init`. If the pointer block is missing, instruct the user to run `/ls-init`.
 - NEVER skip the constitution validation.
 - NEVER let an entry exceed ~25 words. If it needs to, the user is documenting a design, not a decision — point them at `ls-intent` instead.

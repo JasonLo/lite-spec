@@ -16,7 +16,7 @@ Before generating output that touches design, architecture, scope, or behavior, 
 
 ## Spec file ownership
 
-Two tiers (see Constitution §16):
+Two tiers:
 
 - **HUMAN-OWNED** — `specs/1_CONSTITUTION.md` (governance) and `specs/2_INTENT.md` (product/scope). AI agents MUST modify these only via `/ls-constitution` and `/ls-intent` respectively. Never with direct Edit/Write/sed, not even for a "trivial sync" like fixing a stale count.
 - **AGENT-WRITABLE** — `specs/3_DECISIONS.md` (engineering log). AI agents MAY append or supersede entries directly, OR via `/ls-decisions` for the guided path. Direct writes MUST follow the format in `ls-decisions`, validate against the constitution first, and only record decisions settled with the human in the current conversation (no phantom commitments).

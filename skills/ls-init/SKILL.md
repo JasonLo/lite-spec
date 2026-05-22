@@ -59,19 +59,19 @@ The repair path MUST be conservative — never overwrite existing user content, 
 
 1. **List what's present and what's missing** based on the mode-detection scan. Show the user the list before applying any change.
 2. **Create `specs/`** if missing (with `.gitkeep`).
-3. **Add the pointer block to `CLAUDE.md`** only if `CLAUDE.md` lacks it. If `CLAUDE.md` is absent entirely, create it with the full block. If it exists but lacks the block, append the "Read before non-trivial work" and "Spec workflow" sections.
+3. **Add the pointer block to `CLAUDE.md`** only if `CLAUDE.md` lacks it. If `CLAUDE.md` is absent entirely, create it with the full block. If it exists but lacks the block, append the "Read before non-trivial work", "Spec file ownership", and "Spec workflow" sections.
 4. **Do NOT touch existing `specs/1_CONSTITUTION.md`, `specs/2_INTENT.md`, or `specs/3_DECISIONS.md`.** If one of these is missing, simply note it in the report and suggest the relevant skill.
-5. **Validate against `specs/1_CONSTITUTION.md`** if it exists. The repair MUST NOT introduce CLAUDE.md content that violates a principle (e.g., inlining a large doc when Principle 6 caps SKILL bodies — the spirit applies to CLAUDE.md too).
+5. **Validate against `specs/1_CONSTITUTION.md`** if it exists. The repair MUST NOT introduce CLAUDE.md content that violates a principle (e.g., inlining a large doc when the constitution caps doc lengths — the spirit applies to CLAUDE.md too).
 6. **Report** the diff: what was added, what was left untouched, and which next skill the user should invoke for any missing spec file.
 
 ## Validation Rules You MUST Enforce
 
 - **NEVER overwrite an existing `CLAUDE.md` body.** Append only.
-- **NEVER create or modify `1_CONSTITUTION.md`, `2_INTENT.md`, or `3_DECISIONS.md` from within `ls-init`.** This skill is bootstrap-scope. The spec files are authored by their dedicated skills (`/ls-constitution`, `/ls-intent`, `/ls-decisions`); ls-init only creates the empty `specs/` scaffold. (This is about ls-init's role — not a universal rule about who may write to DECISIONS, which is agent-writable per Constitution §16.)
+- **NEVER create or modify `1_CONSTITUTION.md`, `2_INTENT.md`, or `3_DECISIONS.md` from within `ls-init`.** This skill is bootstrap-scope. The spec files are authored by their dedicated skills (`/ls-constitution`, `/ls-intent`, `/ls-decisions`); ls-init only creates the empty `specs/` scaffold. (This is about ls-init's role — not a universal rule about who may write to DECISIONS, which is agent-writable per the agent-writable taxonomy.)
 - **NEVER omit the "Spec file ownership" section from the pointer block.** It carries the two-tier taxonomy into every consumer repo and is the only mechanism by which Claude learns which spec files are human-owned vs. agent-writable.
 - **NEVER install the `ls-` skills** into `.claude/skills/` for the user. Report whether they're reachable; if not, point them at the README's installation snippet.
-- **NEVER add `AGENTS.md` or other cross-tool portability files** (Constitution §11).
-- **NEVER add git hooks, CI integration, or external state files** (Constitution §12).
+- **NEVER add `AGENTS.md` or other cross-tool portability files.**
+- **NEVER add git hooks, CI integration, or external state files.**
 - **NEVER inline spec contents into `CLAUDE.md`** (progressive disclosure).
 
 ## Output Contract
@@ -86,7 +86,7 @@ The repair path MUST be conservative — never overwrite existing user content, 
 
 ## What This Skill MUST NOT Do
 
-- NEVER write or modify any of the three spec files. ls-init is bootstrap-scope; authoring the spec files belongs to `/ls-constitution`, `/ls-intent`, and `/ls-decisions`. (This is an ls-init rule. At runtime, DECISIONS is agent-writable per Constitution §16 — but not via ls-init.)
+- NEVER write or modify any of the three spec files. ls-init is bootstrap-scope; authoring the spec files belongs to `/ls-constitution`, `/ls-intent`, and `/ls-decisions`. (This is an ls-init rule. At runtime, DECISIONS is agent-writable per the agent-writable taxonomy — but not via ls-init.)
 - NEVER duplicate content into `CLAUDE.md` that already exists in a spec file or another doc.
 - NEVER assume the user wants any particular initial principle, intent, or decision — surface the next step, then stop.
 - NEVER fail silently. If the project root is ambiguous, ask the user once and stop until they answer.

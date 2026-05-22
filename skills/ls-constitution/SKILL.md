@@ -30,9 +30,9 @@ This skill has two modes: **ratify** (no constitution exists yet) and **amend** 
    - **Testing** — required coverage, test-first vs. test-after, unit/integration/e2e balance.
    - **Security** — authn/authz rules, input validation, secrets handling, dependency-CVE policy.
 3. **Phrase every principle in MUST/SHALL/NEVER form.** If the user says "we prefer X" or "try to do Y", push back: *"Should this be a hard rule or a soft preference? The constitution only holds hard rules — soft preferences belong in docs."* If hard, rewrite as MUST/SHALL/NEVER. If soft, drop it.
-4. **Number the principles** sequentially across the whole doc, and group them under the six bucket headings that apply.
+4. **Number the principles** sequentially across the whole doc, and group them under the nine bucket headings that apply.
 5. **Write `specs/1_CONSTITUTION.md`.** Create `specs/` if it does not yet exist. The exact structure lives in [`CONSTITUTION.template.md`](CONSTITUTION.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<project-name>` with the inferred or user-supplied name, replace each `<numbered MUST/SHALL/NEVER principles>` placeholder with the elicited principles for that bucket, drop any bucket the user marked not applicable, and write the result to `specs/1_CONSTITUTION.md`. Keep the bucket headings and the `## Amendments` heading verbatim so other skills can grep for them. Substitute both `YYYY-MM-DD` placeholders (the preamble `Ratified:` line and the Amendments seed line) with today's date; leave `Version: 1.0.0` as-is.
-6. **Update `CLAUDE.md`** at the repo root: ensure it contains a one-line pointer like *"`specs/1_CONSTITUTION.md` — non-negotiable project principles. Every skill MUST validate its output against the constitution and refuse to produce violating output."* If `CLAUDE.md` doesn't exist, create a minimal one with that pointer plus pointers to `specs/2_INTENT.md` and `specs/3_DECISIONS.md` (even if those don't exist yet — the pointers stay valid).
+6. **Check `CLAUDE.md` wiring** at the repo root. `ls-init` owns `CLAUDE.md` and is the single source of truth for its pointer block. Grep the repo-root `CLAUDE.md` for the anchor heading `## Read before non-trivial work` (the unique heading `ls-init` writes via its template). If the anchor is present, assume the pointer block is already wired and do nothing. If the anchor is missing (or `CLAUDE.md` doesn't exist), tell the user to run `/ls-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill.
 7. **Report** the principle count and the buckets used.
 
 ## Mode 2 — Amend (`specs/1_CONSTITUTION.md` exists)
@@ -42,7 +42,7 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
 1. **Read** the current `specs/1_CONSTITUTION.md`.
 2. **Classify the amendment**: *add*, *modify*, or *retire* a principle.
 3. **Surface impact**. Scan the repo for files that may be affected:
-   - Grep `specs/2_INTENT.md` and any `specs/2_INTENT-*.md` for content that interacts with the principle.
+   - Grep `specs/2_INTENT.md` for content that interacts with the principle.
    - Grep `specs/3_DECISIONS.md` for decisions that lean on or contradict the principle.
    - Grep the code surface (`skills/`, `src/`, top-level) for the keywords from the principle.
    - Produce a short impact list: which intents, decisions, and code paths would be affected.
@@ -59,7 +59,7 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
    - **MAJOR** — a principle is retired, or an existing principle's meaning changes incompatibly.
    - **MINOR** — a new principle or bucket is added, or guidance is materially expanded.
    - **PATCH** — wording, typo, or clarification with no semantic change.
-7. **Append to `## Amendments`** with date, new version, what changed, and the user's reason.
+7. **Append to `## Amendments`** with date, new version, what changed, and the user's reason. The seed `- **YYYY-MM-DD** — Initial constitution ratified (v1.0.0).` line is preserved unchanged, and each amendment is a new appended line below it.
 8. **Report** the diff, the new version, the impact list, and a suggestion to run `ls-check` if any intents or code were flagged as affected.
 
 ## Validation Rules You MUST Enforce
