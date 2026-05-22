@@ -1,34 +1,34 @@
 ---
 name: ls-check
-description: Verify code against INTENT.md and CONSTITUTION.md, reporting three kinds of drift — code drift, intent drift, constitution drift — with each finding pinned to a specific EARS SHALL statement or principle. Use when the user wants to check that the implementation still matches the spec, after editing INTENT.md, after amending the constitution, or as a pre-PR audit. Triggers on "check for drift", "verify against intent", "does the code match the spec", "audit against constitution", "ls-check", "/ls-check".
+description: Verify code against 2_INTENT.md and 1_CONSTITUTION.md, reporting three kinds of drift — code drift, intent drift, constitution drift — with each finding pinned to a specific EARS SHALL statement or principle. Use when the user wants to check that the implementation still matches the spec, after editing 2_INTENT.md, after amending the constitution, or as a pre-PR audit. Triggers on "check for drift", "verify against intent", "does the code match the spec", "audit against constitution", "ls-check", "/ls-check".
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # ls-check
 
-You are the drift-check skill for **lite-spec**. You read `specs/INTENT.md`, `specs/CONSTITUTION.md`, and the relevant code, then produce a short checklist-style report identifying three kinds of drift:
+You are the drift-check skill for **lite-spec**. You read `specs/2_INTENT.md`, `specs/1_CONSTITUTION.md`, and the relevant code, then produce a short checklist-style report identifying three kinds of drift:
 
 - **Code drift** — implementation no longer satisfies one or more EARS SHALL statements.
-- **Intent drift** — `specs/INTENT.md` was updated but code hasn't caught up.
+- **Intent drift** — `specs/2_INTENT.md` was updated but code hasn't caught up.
 - **Constitution drift** — a feature violates a constitutional principle (e.g., principle added after feature shipped).
 
 Verification is mechanical: each SHALL is checked individually, not vibe-checked as a whole.
 
 ## Inputs
 
-- The current working directory MUST be a project root containing at least `specs/INTENT.md`. `specs/CONSTITUTION.md` is strongly recommended.
-- Optional scope hint from the user (e.g., "check the toggle feature" or "just the auth changes"). If absent, check the whole `specs/INTENT.md`.
+- The current working directory MUST be a project root containing at least `specs/2_INTENT.md`. `specs/1_CONSTITUTION.md` is strongly recommended.
+- Optional scope hint from the user (e.g., "check the toggle feature" or "just the auth changes"). If absent, check the whole `specs/2_INTENT.md`.
 
 ## Procedure
 
-1. **Read `specs/INTENT.md`.** Extract every EARS statement from the Outcome section. Number them in order of appearance (`O-1`, `O-2`, …).
-2. **Read `specs/CONSTITUTION.md`** if present. Number the principles by their existing IDs.
+1. **Read `specs/2_INTENT.md`.** Extract every EARS statement from the Outcome section. Number them in order of appearance (`O-1`, `O-2`, …).
+2. **Read `specs/1_CONSTITUTION.md`** if present. Number the principles by their existing IDs.
 3. **Identify the code surface.** Use Glob/Grep to find files that plausibly implement the intent. Default surface: `src/`, `skills/`, `lib/`, plus any path the user named. If the project is a skill toolkit, the `SKILL.md` files themselves count as "code" — drift can show up as principles violated by skill instructions.
 4. **For each EARS outcome (`O-N`), determine code-drift status.** Grep for keywords from the trigger and response. For each `O-N` you MUST classify as one of:
    - `pass` — implementation satisfies the SHALL. Cite the file:line where the satisfying behavior lives.
    - `fail` — implementation contradicts or omits the SHALL. Cite the file:line where the contradiction lives, or note "no implementation found" and where you searched.
    - `unverifiable` — the SHALL is genuinely not mechanically checkable (e.g., a UX-feel claim). Flag it so the user can either rewrite the EARS or accept the limitation.
-5. **For each EARS outcome, also check intent-drift.** Look at the `## Change Log` in `specs/INTENT.md`. If the most recent Change Log entry post-dates the most recent commit touching the relevant code (use `git log -1 --format=%ci -- <file>`), flag `intent ahead` — the intent moved but the code didn't.
+5. **For each EARS outcome, also check intent-drift.** Look at the `## Change Log` in `specs/2_INTENT.md`. If the most recent Change Log entry post-dates the most recent commit touching the relevant code (use `git log -1 --format=%ci -- <file>`), flag `intent ahead` — the intent moved but the code didn't.
 6. **For each constitutional principle, check constitution-drift.** For each principle, ask: does any part of the current code or any current EARS outcome violate this principle? Grep for the principle's keywords (e.g., a "static typing" principle ⇒ look for untyped surfaces). Classify each principle as `pass`, `fail`, or `not applicable to this scope`.
 7. **Generate the report.** Use this exact format:
 
@@ -62,9 +62,9 @@ Verification is mechanical: each SHALL is checked individually, not vibe-checked
 
 ## Edge Cases
 
-- **No `specs/INTENT.md`** — refuse to run and tell the user to invoke `ls-intent` first.
-- **No `specs/CONSTITUTION.md`** — proceed without the constitution-drift section, and note the omission in the report.
-- **`specs/INTENT.md` has no EARS outcomes** — refuse and tell the user the Outcome section needs to be in EARS form. Suggest re-invoking `ls-intent`.
+- **No `specs/2_INTENT.md`** — refuse to run and tell the user to invoke `ls-intent` first.
+- **No `specs/1_CONSTITUTION.md`** — proceed without the constitution-drift section, and note the omission in the report.
+- **`specs/2_INTENT.md` has no EARS outcomes** — refuse and tell the user the Outcome section needs to be in EARS form. Suggest re-invoking `ls-intent`.
 - **No code yet (greenfield)** — every `O-N` becomes `fail (no implementation found)`. That's a valid pre-implementation snapshot, not an error.
 
 ## What This Skill MUST NOT Do

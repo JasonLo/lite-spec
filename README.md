@@ -1,16 +1,17 @@
 # lite-spec
 
-A toolkit of four Claude Code skills (the `ls-` family) for the AI-era spec workflow. Enough structure for a solo developer or small team to think clearly and capture decisions, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
+A toolkit of five Claude Code skills (the `ls-` family) for the AI-era spec workflow. Enough structure for a solo developer or small team to think clearly and capture decisions, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
 
-Cycle: **principles → intent → decisions → drift check.**
+Cycle: **bootstrap → principles → intent → decisions → drift check.**
 
 ## The skills
 
 | Skill | Artifact | When to use |
 |---|---|---|
-| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. |
-| [`ls-intent`](skills/ls-intent/SKILL.md) | `specs/INTENT.md` | When describing a new feature. Produces a one-page doc with EARS-formatted acceptance criteria. |
-| [`ls-decisions`](skills/ls-decisions/SKILL.md) | `specs/DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale; supports supersession. |
+| [`ls-init`](skills/ls-init/SKILL.md) | `specs/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
+| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/1_CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. |
+| [`ls-intent`](skills/ls-intent/SKILL.md) | `specs/2_INTENT.md` | When describing a new feature. Produces a one-page doc with EARS-formatted acceptance criteria. |
+| [`ls-decisions`](skills/ls-decisions/SKILL.md) | `specs/3_DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale; supports supersession. |
 | [`ls-check`](skills/ls-check/SKILL.md) | drift report (stdout) | When verifying code still satisfies intent. Reports code, intent, and constitution drift. |
 
 Each skill is useful standalone; together they cover the full cycle.
@@ -18,10 +19,11 @@ Each skill is useful standalone; together they cover the full cycle.
 ## How it fits together
 
 ```
-ls-constitution ──► specs/CONSTITUTION.md ◄── validated against by every other skill
-ls-intent       ──► specs/INTENT.md (EARS outcomes) ──Change Log append──► ls-check
-ls-decisions    ──► specs/DECISIONS.md (append-only, supersession-aware)
-ls-check         reads specs/INTENT.md + specs/CONSTITUTION.md + code, reports 3 drift types
+ls-init         ──► specs/ scaffold + CLAUDE.md pointer block (progressive disclosure)
+ls-constitution ──► specs/1_CONSTITUTION.md ◄── validated against by every other skill
+ls-intent       ──► specs/2_INTENT.md (EARS outcomes) ──Change Log append──► ls-check
+ls-decisions    ──► specs/3_DECISIONS.md (append-only, supersession-aware)
+ls-check         reads specs/2_INTENT.md + specs/1_CONSTITUTION.md + code, reports 3 drift types
 ```
 
 Every artifact is plain Markdown stored in-repo. No external services, no databases, no CI hooks — invocation stays manual.
@@ -53,7 +55,7 @@ Invoke by name (e.g., `/ls-intent`) or by describing the task — keyword-rich d
 
 ## Dogfooded artifacts
 
-This repo's [`specs/INTENT.md`](specs/INTENT.md), [`specs/CONSTITUTION.md`](specs/CONSTITUTION.md), and [`specs/DECISIONS.md`](specs/DECISIONS.md) are real outputs of the toolkit, not examples. [`CLAUDE.md`](CLAUDE.md) is a thin pointer file so Claude loads context lazily. See [`specs/CONSTITUTION.md`](specs/CONSTITUTION.md) for the full ruleset (max 5 skills, `ls-` prefix, EARS criteria, Claude-first, manual invocation, etc.).
+This repo's [`specs/2_INTENT.md`](specs/2_INTENT.md), [`specs/1_CONSTITUTION.md`](specs/1_CONSTITUTION.md), and [`specs/3_DECISIONS.md`](specs/3_DECISIONS.md) are real outputs of the toolkit, not examples. [`CLAUDE.md`](CLAUDE.md) is a thin pointer file so Claude loads context lazily. See [`specs/1_CONSTITUTION.md`](specs/1_CONSTITUTION.md) for the full ruleset (max 5 skills, `ls-` prefix, EARS criteria, Claude-first, manual invocation, etc.).
 
 ## License
 
