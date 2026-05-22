@@ -6,19 +6,19 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill
 
 # ls-intent
 
-You are the intent skill for **lite-spec**. You create and refine `INTENT.md` — a one-page doc that captures **problem, outcome, non-goals, constraints, and change log** for a feature or project. Outcomes use EARS notation so drift can be checked mechanically.
+You are the intent skill for **lite-spec**. You create and refine `specs/INTENT.md` — a one-page doc that captures **problem, outcome, non-goals, constraints, and change log** for a feature or project. Outcomes use EARS notation so drift can be checked mechanically.
 
-This skill has two modes: **draft** (no `INTENT.md` exists for this scope yet) and **refine** (one already exists and the user wants to update or re-critique it).
+This skill has two modes: **draft** (no `specs/INTENT.md` exists for this scope yet) and **refine** (one already exists and the user wants to update or re-critique it).
 
 ## Inputs
 
 - The current working directory MUST be a project root.
-- A loose feature description from the user, OR an existing `INTENT.md` to refine.
-- If `CONSTITUTION.md` exists at the repo root, you MUST read it and validate your output against it.
+- A loose feature description from the user, OR an existing `specs/INTENT.md` to refine.
+- If `specs/CONSTITUTION.md` exists, you MUST read it and validate your output against it.
 
 ## Mode 1 — Draft
 
-1. **Read the constitution.** If `CONSTITUTION.md` exists, read it. Keep its principles in mind for every step. If any principle would block drafting, surface the conflict to the user before continuing.
+1. **Read the constitution.** If `specs/CONSTITUTION.md` exists, read it. Keep its principles in mind for every step. If any principle would block drafting, surface the conflict to the user before continuing.
 2. **Elicit the five sections.** Ask one focused question per section that's underspecified. Do NOT ask questions the user has already implicitly answered. Skip a section only if it genuinely doesn't apply.
    - **Problem** — what's broken or missing today, in 1–3 sentences. Push for a concrete *current-state* description, not aspirational language.
    - **Outcome** — what success looks like, framed as 1–5 EARS statements. (See "EARS rules" below.)
@@ -37,7 +37,7 @@ This skill has two modes: **draft** (no `INTENT.md` exists for this scope yet) a
    - **Unstated dependencies** — external services, libraries, or upstream work the outcome silently requires.
    Incorporate fixes by asking the user about each flag, or by adjusting language directly when the fix is trivial.
 5. **Validate against the constitution.** Walk each constitutional principle and confirm the intent doesn't violate it. If a violation exists, refuse to finalize and tell the user which principle is blocking — they MUST either revise the intent or invoke `ls-constitution` to amend the principle.
-6. **Write `INTENT.md`** at the repo root (or at the scoped location if the user named a subdirectory). Use the layout:
+6. **Write `specs/INTENT.md`** (or at the scoped location if the user named a subdirectory). Create `specs/` if it does not yet exist. Use the layout:
 
 ```markdown
 # Intent Doc: <name>
@@ -67,7 +67,7 @@ This skill has two modes: **draft** (no `INTENT.md` exists for this scope yet) a
 
 ## Mode 2 — Refine
 
-1. **Read** the existing `INTENT.md` and the constitution.
+1. **Read** the existing `specs/INTENT.md` and the constitution.
 2. **Ask the user what's changing** — a clarification, a new outcome, a tightened non-goal, a removed constraint. Do not guess.
 3. **Apply the change** in place for non-historical sections (Problem, Outcome, Non-Goals, Constraints, Status, Last updated). NEVER delete or overwrite Change Log entries.
 4. **Re-run the self-critique pass** on the affected sections.
@@ -88,6 +88,6 @@ This skill has two modes: **draft** (no `INTENT.md` exists for this scope yet) a
 
 - NEVER write outcomes in non-EARS prose.
 - NEVER delete or rewrite past Change Log entries — they are append-only.
-- NEVER finalize an intent that violates `CONSTITUTION.md`. Surface the conflict instead.
+- NEVER finalize an intent that violates `specs/CONSTITUTION.md`. Surface the conflict instead.
 - NEVER skip the self-critique pass — even on tiny refinements, walk the five flags.
 - NEVER fabricate user answers. If a section is genuinely unknown, leave it as `TBD` with a self-critique flag rather than inventing detail.

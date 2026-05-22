@@ -6,7 +6,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 # ls-decisions
 
-You are the decisions skill for **lite-spec**. You maintain `DECISIONS.md` at the repo root — an append-only log of non-trivial decisions with rationale. Each entry is a single line: `D-NNNN: Decided X because Y (YYYY-MM-DD).`
+You are the decisions skill for **lite-spec**. You maintain `specs/DECISIONS.md` — an append-only log of non-trivial decisions with rationale. Each entry is a single line: `D-NNNN: Decided X because Y (YYYY-MM-DD).`
 
 This skill has two modes: **append** (a new decision) and **supersede** (a past decision is being reversed).
 
@@ -14,12 +14,12 @@ This skill has two modes: **append** (a new decision) and **supersede** (a past 
 
 - The current working directory MUST be a project root.
 - A description of the decision from the user (the "X") and a reason (the "Y").
-- If `CONSTITUTION.md` exists, you MUST read it and validate the decision against it.
+- If `specs/CONSTITUTION.md` exists, you MUST read it and validate the decision against it.
 
 ## Mode 1 — Append
 
-1. **Read the constitution.** If `CONSTITUTION.md` exists, read it. Cross-check the proposed decision against every principle.
-2. **Read `DECISIONS.md`.** If it doesn't exist, create it with this header:
+1. **Read the constitution.** If `specs/CONSTITUTION.md` exists, read it. Cross-check the proposed decision against every principle.
+2. **Read `specs/DECISIONS.md`.** If it doesn't exist, create it (creating `specs/` first if needed) with this header:
 
 ```markdown
 # Decisions Log
@@ -28,12 +28,12 @@ Append-only log of non-trivial decisions. Each entry: `D-NNNN: Decided X because
 ```
 
 3. **Pick the next ID.** Scan existing `D-NNNN` IDs and use the next sequential number, four digits zero-padded.
-4. **Deduplicate.** Grep `DECISIONS.md` for keywords from the proposed decision. If a near-duplicate exists, surface it and ask the user whether to (a) skip — the choice is already recorded, (b) supersede the prior entry (switch to supersede mode), or (c) append anyway because the new entry is meaningfully different. Do not silently double-log.
+4. **Deduplicate.** Grep `specs/DECISIONS.md` for keywords from the proposed decision. If a near-duplicate exists, surface it and ask the user whether to (a) skip — the choice is already recorded, (b) supersede the prior entry (switch to supersede mode), or (c) append anyway because the new entry is meaningfully different. Do not silently double-log.
 5. **Validate against the constitution.** If the decision would violate a principle, refuse and tell the user which principle is blocking. They MUST either revise the decision or invoke `ls-constitution` to amend the principle.
 6. **Check durability.** The entry MUST still make sense 6 months later. If the "because Y" reduces to "because we wanted to" or "because it's better", push back and ask for a concrete tradeoff (what was the alternative, what made this one win). If the user genuinely can't articulate a tradeoff, the decision probably isn't durable enough to log — say so.
 7. **Aim for under 25 words.** A decision entry is one sentence, not a paragraph. If the rationale needs more, link to an INTENT or a doc rather than expanding inline.
-8. **Append** the entry to `DECISIONS.md`.
-9. **Update `CLAUDE.md`.** Ensure `CLAUDE.md` at the repo root contains a pointer line like *"See `DECISIONS.md` for past architectural choices and rationale."* — add it if missing. Do NOT inline the decisions log content into `CLAUDE.md`; the pointer keeps context lean (progressive disclosure).
+8. **Append** the entry to `specs/DECISIONS.md`.
+9. **Update `CLAUDE.md`.** Ensure `CLAUDE.md` at the repo root contains a pointer line like *"See `specs/DECISIONS.md` for past architectural choices and rationale."* — add it if missing. Do NOT inline the decisions log content into `CLAUDE.md`; the pointer keeps context lean (progressive disclosure).
 10. **Report** the new ID, the entry text, and a confirmation that the constitution check passed.
 
 ## Mode 2 — Supersede
@@ -55,13 +55,13 @@ Append-only log of non-trivial decisions. Each entry: `D-NNNN: Decided X because
 ## Validation Rules You MUST Enforce
 
 - **Constitution validation is blocking.** If the decision violates a principle, refuse and surface the principle. Never silently log a violating decision.
-- **No silent deletion.** Editing `DECISIONS.md` is fine; deleting past lines is not. The only mutation to a prior line is the supersession annotation.
+- **No silent deletion.** Editing `specs/DECISIONS.md` is fine; deleting past lines is not. The only mutation to a prior line is the supersession annotation.
 - **No bare "because we decided".** Rationale must reference a tradeoff, a constraint, or an external requirement.
 - **No duplicate ID reuse.** Even retired IDs stay retired — never reassign `D-0042`.
 
 ## Output Contract
 
-- `DECISIONS.md` at the repo root, append-only.
+- `specs/DECISIONS.md`, append-only.
 - `CLAUDE.md` pointer ensured.
 - A short stdout report: new ID, entry text, constitution-check status, and (for supersede) the ID being replaced.
 

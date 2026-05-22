@@ -1,63 +1,43 @@
 # lite-spec
 
-A small set of Claude Code skills (the `ls-` family) for the AI-era spec workflow. Lite-spec gives a solo developer or small team enough structure to think clearly and capture decisions, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
+A toolkit of four Claude Code skills (the `ls-` family) for the AI-era spec workflow. Enough structure for a solo developer or small team to think clearly and capture decisions, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
 
-The cycle is: **principles → intent → decisions → drift check.**
+Cycle: **principles → intent → decisions → drift check.**
 
 ## The skills
 
 | Skill | Artifact | When to use |
 |---|---|---|
-| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `CONSTITUTION.md` | Once per project (and on amendments). Sets the non-negotiable principles every other skill validates against. |
-| [`ls-intent`](skills/ls-intent/SKILL.md) | `INTENT.md` | When describing a new feature in loose terms. Produces a one-page intent doc with EARS-formatted acceptance criteria. |
-| [`ls-decisions`](skills/ls-decisions/SKILL.md) | `DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale; supports supersession. |
-| [`ls-check`](skills/ls-check/SKILL.md) | report (stdout) | When you want to verify code still satisfies intent. Reports code drift, intent drift, and constitution drift. |
+| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. |
+| [`ls-intent`](skills/ls-intent/SKILL.md) | `specs/INTENT.md` | When describing a new feature. Produces a one-page doc with EARS-formatted acceptance criteria. |
+| [`ls-decisions`](skills/ls-decisions/SKILL.md) | `specs/DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale; supports supersession. |
+| [`ls-check`](skills/ls-check/SKILL.md) | drift report (stdout) | When verifying code still satisfies intent. Reports code, intent, and constitution drift. |
 
-Each skill is useful standalone. Together, they cover the full lightweight spec cycle.
+Each skill is useful standalone; together they cover the full cycle.
 
 ## How it fits together
 
 ```
-ls-constitution ──┐
-                  ├──► CONSTITUTION.md ◄── validated against by every other skill
-ls-intent ────────┼──► INTENT.md (EARS outcomes)
-                  │       │
-                  │       └─── Change Log entry triggers ──► ls-check
-ls-decisions ─────┴──► DECISIONS.md (append-only, supersession-aware)
-
-ls-check reads INTENT.md + CONSTITUTION.md + code, reports 3 drift types.
+ls-constitution ──► specs/CONSTITUTION.md ◄── validated against by every other skill
+ls-intent       ──► specs/INTENT.md (EARS outcomes) ──Change Log append──► ls-check
+ls-decisions    ──► specs/DECISIONS.md (append-only, supersession-aware)
+ls-check         reads specs/INTENT.md + specs/CONSTITUTION.md + code, reports 3 drift types
 ```
 
-Every artifact is plain Markdown stored in the repo alongside code. No external services, no databases, no CI hooks — invocation stays manual.
+Every artifact is plain Markdown stored in-repo. No external services, no databases, no CI hooks — invocation stays manual.
 
 ## Installation
 
-Skills live under [`skills/`](skills/). To use them with Claude Code, copy the skill folders into your project's `.claude/skills/` directory (or your global `~/.claude/skills/` if you want them available everywhere):
-
 ```bash
-cp -r skills/ls-* ~/.claude/skills/
+cp -r skills/ls-* ~/.claude/skills/                   # global
+cp -r skills/ls-* /path/to/project/.claude/skills/    # per-project
 ```
 
-Then invoke a skill by name in Claude Code (e.g., `/ls-intent`) or by describing what you want — the keyword-rich descriptions in each skill's frontmatter make them trigger reliably.
+Invoke by name (e.g., `/ls-intent`) or by describing the task — keyword-rich descriptions in each skill's frontmatter trigger reliably.
 
-## The artifacts in this repo
+## Dogfooded artifacts
 
-This repo dogfoods its own toolkit:
-
-- [`INTENT.md`](INTENT.md) — the intent for lite-spec itself
-- [`CONSTITUTION.md`](CONSTITUTION.md) — the principles every `ls-` skill upholds
-- [`DECISIONS.md`](DECISIONS.md) — bootstrap decisions for the toolkit
-- [`CLAUDE.md`](CLAUDE.md) — thin pointers so Claude loads context lazily
-
-## Constraints worth knowing
-
-- Max 5 skills, all `ls-` prefixed
-- Every `SKILL.md` body stays under 5,000 words
-- Acceptance criteria are EARS (`WHEN <trigger> THE SYSTEM SHALL <response>`) so drift checks are mechanical
-- Claude-first — no `AGENTS.md` portability layer
-- Manual invocation — no git hooks, no CI integration
-
-See [`CONSTITUTION.md`](CONSTITUTION.md) for the full list.
+This repo's [`specs/INTENT.md`](specs/INTENT.md), [`specs/CONSTITUTION.md`](specs/CONSTITUTION.md), and [`specs/DECISIONS.md`](specs/DECISIONS.md) are real outputs of the toolkit, not examples. [`CLAUDE.md`](CLAUDE.md) is a thin pointer file so Claude loads context lazily. See [`specs/CONSTITUTION.md`](specs/CONSTITUTION.md) for the full ruleset (max 5 skills, `ls-` prefix, EARS criteria, Claude-first, manual invocation, etc.).
 
 ## License
 

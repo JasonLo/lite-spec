@@ -9,3 +9,4 @@ Append-only log of non-trivial decisions. Each entry is one line: `D-NNNN: Decid
 - **D-0005:** Decided Claude-first (no `AGENTS.md`) because cross-tool portability would force lowest-common-denominator instructions and erode the opinionated lightweight feel (2026-05-22).
 - **D-0006:** Decided constitutional enforcement is blocking (skills refuse violating output) rather than advisory because advisory rules drift to ignored rules (2026-05-22).
 - **D-0007:** Decided `ls-intent` auto-invokes `ls-check` on every Change Log append because drift detected immediately after intent evolution is cheaper than drift discovered weeks later (2026-05-22).
+- **D-0008:** Decided to store the three artifact docs under `specs/` rather than the repo root because it groups spec material in one place and keeps the root readable as project surface area grows (2026-05-22).
