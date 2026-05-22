@@ -28,6 +28,22 @@ Every artifact is plain Markdown stored in-repo. No external services, no databa
 
 ## Installation
 
+One-liner — installs the `ls-` skills into `~/.claude/skills/`:
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/install.sh | sh
+```
+
+Per-project install (`./.claude/skills/`):
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/install.sh | sh -s -- --project
+```
+
+Re-running updates in place. Pin to a tag or commit SHA with `--ref` (recommended for production — `main` is mutable). To remove, swap `install.sh` for `uninstall.sh` in the URL.
+
+Manual install (no curl):
+
 ```bash
 cp -r skills/ls-* ~/.claude/skills/                   # global
 cp -r skills/ls-* /path/to/project/.claude/skills/    # per-project
