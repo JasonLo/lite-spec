@@ -1,11 +1,12 @@
 #!/bin/sh
 # lite-spec installer — copies the ls-* skills into a Claude Code skills dir.
 #
-# One-liner (default: install globally into ~/.claude/skills/):
+# One-liner (prompts for location; default: per-project):
 #   curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/install.sh | sh
 #
-# Per-project install (./.claude/skills/):
-#   curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/install.sh | sh -s -- --project
+# Non-interactive — choose explicitly:
+#   curl -LsSf .../install.sh | sh -s -- --project   # ./.claude/skills/
+#   curl -LsSf .../install.sh | sh -s -- --global    # ~/.claude/skills/
 #
 # Re-running this script updates an existing install in place.
 
@@ -13,22 +14,22 @@ set -eu
 
 REPO="JasonLo/lite-spec"
 REF="${LITE_SPEC_REF:-main}"
-MODE="global"
-PREFIX=""
+MODE=""
 
 usage() {
     cat <<EOF
 lite-spec installer
 
 Usage:
-  install.sh [--global | --project | --prefix DIR] [--ref REF]
+  install.sh [--project | --global] [--ref REF]
 
 Options:
-  --global       install into \$HOME/.claude/skills/ (default)
-  --project      install into \$PWD/.claude/skills/
-  --prefix DIR   install into DIR (each ls-* skill is copied as DIR/ls-*)
+  --project      install into \$PWD/.claude/skills/ (interactive default)
+  --global       install into \$HOME/.claude/skills/
   --ref REF      git branch, tag, or commit SHA to install from (default: main)
   -h, --help     show this message
+
+With no flag, the installer prompts you to choose project (default) or global.
 
 Environment:
   LITE_SPEC_REF  same as --ref
@@ -39,9 +40,6 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --global)  MODE="global"; shift ;;
         --project) MODE="project"; shift ;;
-        --prefix)
-            [ $# -ge 2 ] || { echo "error: --prefix requires a value" >&2; exit 2; }
-            MODE="prefix"; PREFIX="$2"; shift 2 ;;
         --ref)
             [ $# -ge 2 ] || { echo "error: --ref requires a value" >&2; exit 2; }
             REF="$2"; shift 2 ;;
@@ -50,10 +48,23 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+if [ -z "$MODE" ]; then
+    MODE="project"
+    # Subshell isolates redirection failure: under dash + `set -e`, a failed
+    # `> /dev/tty` aborts the parent script; running it in `( ... )` keeps us alive.
+    if ( : > /dev/tty ) 2>/dev/null; then
+        printf 'Install lite-spec where?\n  [P]roject  ./.claude/skills/  (default)\n  [G]lobal   ~/.claude/skills/\nChoice [P/g]: ' > /dev/tty
+        REPLY=""
+        read REPLY < /dev/tty || REPLY=""
+        case "$REPLY" in
+            g|G|global) MODE="global" ;;
+        esac
+    fi
+fi
+
 case "$MODE" in
     global)  DEST="${HOME}/.claude/skills" ;;
     project) DEST="$(pwd)/.claude/skills" ;;
-    prefix)  DEST="$PREFIX" ;;
 esac
 
 need() {
