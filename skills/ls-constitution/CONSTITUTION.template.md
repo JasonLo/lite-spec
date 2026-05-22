@@ -1,6 +1,6 @@
 # Constitution: <project-name>
 
-Version: 1.0.0 · Ratified: YYYY-MM-DD
+Ratified: YYYY-MM-DD
 
 Non-negotiable project principles. Every other `ls-` skill validates its output against this file and refuses to produce violating output.
 
@@ -42,4 +42,4 @@ Non-negotiable project principles. Every other `ls-` skill validates its output 
 
 ## Amendments
 
-- **YYYY-MM-DD** — Initial constitution ratified (v1.0.0).
+- **YYYY-MM-DD** — Initial constitution ratified.

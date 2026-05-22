@@ -31,7 +31,7 @@ Before doing anything, scan and classify:
 - `specs/` exists? (directory)
 - `specs/1_CONSTITUTION.md`, `specs/2_INTENT.md`, `specs/3_DECISIONS.md` — each present or absent?
 - `CLAUDE.md` exists at the repo root?
-- If `CLAUDE.md` exists, does it already contain a lite-spec pointer block (look for a heading like `## Read before non-trivial work` and the three `specs/*.md` paths)?
+- If `CLAUDE.md` exists, does it already contain a lite-spec pointer block (look for the marker `<!-- lite-spec:pointer-block:start -->`, the durable anchor this skill writes via its template — robust against cosmetic heading edits)?
 - Are the `ls-` skills installed somewhere reachable? Check `.claude/skills/ls-*` (per-project) and `~/.claude/skills/ls-*` (global). Report which (if any), but do NOT install them — that's the user's call.
 
 **Bootstrap** = no `specs/` directory AND (no `CLAUDE.md` OR `CLAUDE.md` has no lite-spec pointer block).
@@ -40,7 +40,7 @@ Before doing anything, scan and classify:
 ## Mode 1 — Bootstrap
 
 1. **Confirm the project root** using the markers listed in Inputs. If unsure, ask the user once.
-2. **Create `specs/`** as an empty directory. Do NOT create `1_CONSTITUTION.md`, `2_INTENT.md`, or `3_DECISIONS.md` here — those go through their dedicated skills, which is the careful path. Add a `specs/.gitkeep` so the empty directory is checked in.
+2. **Create `specs/`** as an empty directory. Do NOT create `1_CONSTITUTION.md`, `2_INTENT.md`, or `3_DECISIONS.md` here — those go through their dedicated skills, which is the careful path. Do NOT add a `.gitkeep`; the directory becomes meaningful (and committable) the first time a spec skill writes a file into it. An empty `specs/` carries no information — there is nothing to preserve.
 3. **Write or update `CLAUDE.md`** at the repo root with the pointer block below. If `CLAUDE.md` already exists, do NOT overwrite it — instead, append the pointer block as a new section after existing content, and leave the rest alone.
 4. **Report** what was created, where the skills were found (or that they weren't), and the recommended next step (`/ls-constitution` if no constitution exists, otherwise `/ls-intent`).
 
@@ -50,16 +50,17 @@ The exact structure lives in [`CLAUDE.template.md`](CLAUDE.template.md) (sibling
 
 Notes on the block:
 - The pointer lines reference files that may not yet exist. That's intentional — they become live once the corresponding skill runs for the first time.
-- If `CLAUDE.md` already had a "What this repo is" section, do NOT overwrite it. Append only the "Read before non-trivial work", "Spec file ownership", and "Spec workflow" sections, and skip the `# CLAUDE.md` heading.
-- The "Spec file ownership" section is load-bearing — it carries the two-tier taxonomy (HUMAN-OWNED vs. AGENT-WRITABLE) into every consumer repo, so future Claude sessions know which spec files they may touch directly. Keep its heading verbatim so other skills can detect its presence; never collapse it into a one-liner or drop one of the tiers.
+- The `<!-- lite-spec:pointer-block:start -->` and `<!-- lite-spec:pointer-block:end -->` HTML comments wrap the three lite-spec sections in the template. They are the durable anchor that other `ls-` skills grep for — keep them verbatim. Heading text inside the block is human-editable; the markers are not.
+- If `CLAUDE.md` already exists, do NOT overwrite the file. Append only the three lite-spec sections ("Read before non-trivial work", "Spec file ownership", "Spec workflow"), wrapped in the start/end markers, after existing content. Always skip the `# CLAUDE.md` H1 and the "What this repo is" section when appending — those belong to the existing file. Emit the H1 and the "What this repo is" intro only when creating `CLAUDE.md` from scratch.
+- The "Spec file ownership" section is load-bearing — it carries the two-tier taxonomy (HUMAN-OWNED vs. AGENT-WRITABLE) into every consumer repo, so future Claude sessions know which spec files they may touch directly. Never collapse it into a one-liner or drop one of the tiers.
 
 ## Mode 2 — Repair
 
 The repair path MUST be conservative — never overwrite existing user content, never rewrite spec files, never renumber decisions. You're filling in gaps, not normalizing style.
 
 1. **List what's present and what's missing** based on the mode-detection scan. Show the user the list before applying any change.
-2. **Create `specs/`** if missing (with `.gitkeep`).
-3. **Add the pointer block to `CLAUDE.md`** only if `CLAUDE.md` lacks it. If `CLAUDE.md` is absent entirely, create it with the full block. If it exists but lacks the block, append the "Read before non-trivial work", "Spec file ownership", and "Spec workflow" sections.
+2. **Create `specs/`** if missing. Do not add a `.gitkeep` — see the bootstrap note above.
+3. **Add the pointer block to `CLAUDE.md`** only if `CLAUDE.md` lacks the `<!-- lite-spec:pointer-block:start -->` marker. If `CLAUDE.md` is absent entirely, create it with the full block (H1, "What this repo is", then the marker-wrapped three sections). If it exists but lacks the marker, append only the three lite-spec sections — wrapped in the start/end markers — after existing content. Never re-emit the `# CLAUDE.md` H1 or the "What this repo is" intro when appending to an existing file.
 4. **Do NOT touch existing `specs/1_CONSTITUTION.md`, `specs/2_INTENT.md`, or `specs/3_DECISIONS.md`.** If one of these is missing, simply note it in the report and suggest the relevant skill.
 5. **Validate against `specs/1_CONSTITUTION.md`** if it exists. The repair MUST NOT introduce CLAUDE.md content that violates a principle (e.g., inlining a large doc when the constitution caps doc lengths — the spirit applies to CLAUDE.md too).
 6. **Report** the diff: what was added, what was left untouched, and which next skill the user should invoke for any missing spec file.
@@ -76,8 +77,8 @@ The repair path MUST be conservative — never overwrite existing user content, 
 
 ## Output Contract
 
-- `specs/` exists with a `.gitkeep` (only if it didn't already exist).
-- `CLAUDE.md` exists at the repo root and contains the pointer block.
+- `specs/` exists (empty until a spec skill writes its first file — no `.gitkeep`).
+- `CLAUDE.md` exists at the repo root and contains the marker-wrapped pointer block.
 - A short stdout report:
   - Mode used (bootstrap or repair).
   - Files created vs. files left untouched.

@@ -6,6 +6,8 @@ Guidance for Claude Code (claude.ai/code) when working in this repo.
 
 **<project-name>** — short one-line description.
 
+<!-- lite-spec:pointer-block:start -->
+
 ## Read before non-trivial work
 
 Before generating output that touches design, architecture, scope, or behavior, load the spec files lazily — they override CLAUDE.md on conflict.
@@ -32,3 +34,5 @@ This repo uses **lite-spec** — invoke the skills by name:
 - `/ls-intent` — draft or refine intent (`specs/2_INTENT.md`)
 - `/ls-decisions` — log a decision (`specs/3_DECISIONS.md`)
 - `/ls-check` — drift report against intent + constitution
+
+<!-- lite-spec:pointer-block:end -->
