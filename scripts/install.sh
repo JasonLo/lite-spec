@@ -107,5 +107,5 @@ lite-spec: installed into ${DEST}
   skills:${INSTALLED}
 
 Done! Invoke any skill in Claude Code by name (e.g. /ls-intent) or by describing the task.
-Re-run this script to update. To remove, run scripts/uninstall.sh from the repo.
+Re-run this script to update.
 EOF

@@ -53,10 +53,6 @@ cp -r skills/ls-* /path/to/project/.claude/skills/    # per-project
 
 Invoke by name (e.g., `/ls-intent`) or by describing the task — keyword-rich descriptions in each skill's frontmatter trigger reliably.
 
-## Dogfooded artifacts
-
-This repo's [`specs/2_INTENT.md`](specs/2_INTENT.md), [`specs/1_CONSTITUTION.md`](specs/1_CONSTITUTION.md), and [`specs/3_DECISIONS.md`](specs/3_DECISIONS.md) are real outputs of the toolkit, not examples. [`CLAUDE.md`](CLAUDE.md) is a thin pointer file so Claude loads context lazily. See [`specs/1_CONSTITUTION.md`](specs/1_CONSTITUTION.md) for the full ruleset (max 5 skills, `ls-` prefix, EARS criteria, Claude-first, manual invocation, etc.).
-
 ## License
 
 MIT (add a LICENSE file if you intend to publish).
