@@ -27,7 +27,7 @@ This skill has two modes: **ratify** (no constitution exists yet) and **amend** 
    - **Artifacts** — where things live, format (plain text vs. structured), append-only rules.
    - **Boundaries** — what the project MUST NOT do, integrations it MUST NOT add.
    - **Code quality** — typing, linting, complexity ceilings, review requirements.
-   - **Testing** — required coverage, test-first vs. test-after, unit/integration/e2e balance.
+   - **Testing** — required coverage, test-first vs. test-after, unit/integration/e2e balance, allowed runners (the EARS citation grammar supports `pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, `shell`, and `agent` — projects may narrow this set with a principle like "agent runner forbidden" or "only pytest"; `ls-check` enforces the whitelist).
    - **Security** — authn/authz rules, input validation, secrets handling, dependency-CVE policy.
 
    After elicitation, bucketize what the user gave you. For any bucket that ended up empty, surface a one-line warning in the final report ("No principles for X — fine for now; revisit if X becomes contentious."). An empty bucket is a valid choice, not an error — drop empty buckets from the written file (see step 5).

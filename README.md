@@ -48,10 +48,26 @@ Plain Markdown, no external services. `CONSTITUTION.md` and the `INTENT/` tree a
 
 ## Test-backed verdicts
 
-Each EARS outcome may carry a `[test: <runner>:<target>]` citation. When present, `ls-check` executes that test (via `pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, or a `shell:` escape hatch) and uses the exit code — not an LLM grep — to decide pass vs. fail.
+Each EARS outcome may carry a `[test: <runner>:<target>]` citation. When present, `ls-check` runs the citation and uses the result — not an LLM grep — to decide pass vs. fail. Two flavors of runner exist:
+
+**Process runners** (`pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, `shell`) — invoked via Bash; exit code 0 is the only path to a test-backed pass.
 
 ```markdown
 - **WHEN** user submits the form **THE SYSTEM SHALL** show a toast within 200ms. [test: pytest:tests/test_form.py::test_toast_latency]
 ```
 
-`ls-check` then writes two ratios back to the intent's frontmatter: `verdict_outcomes_passed/_total` (overall) and `verdict_outcomes_passed_by_test/_total` (strictly stronger — only test-executed passes count). Outcomes without a citation fall back to grep + LLM judgment and are explicitly flagged in the report; the goal is to drive the by-test ratio toward 1.0 over time.
+**Agent runner** (`agent:<path-to-prompt-file>`) — for SHALLs that can't be expressed as a deterministic test (UX copy tone, doc structure, narrative consistency). `ls-check` spawns a subagent against the prompt file plus the EARS line, the subagent emits a structured `pass`/`fail`/`unverifiable` verdict with file:line evidence, and the verdict + reason + citations are surfaced in the drift report.
+
+```markdown
+- **WHEN** an error blocks the user **THE SYSTEM SHALL** show concise, actionable copy. [test: agent:specs/INTENT/I-3-onboarding/checks/error_copy_tone.md]
+```
+
+The prompt file (`specs/INTENT/I-3-onboarding/checks/error_copy_tone.md`) is seeded with the SHALL by `/ls-intent` on first cite; the user enriches its `## Success criteria` section with concrete pass conditions.
+
+`ls-check` writes three ratios back to the intent's frontmatter, forming a strength ladder:
+
+- `verdict_outcomes_passed/_total` — overall passes.
+- `verdict_outcomes_passed_by_agent/_total` — passes verified by at least a subagent check or a process-runner test.
+- `verdict_outcomes_passed_by_test/_total` — passes verified by a process-runner test (strictest signal).
+
+Invariant: `_passed_by_test ≤ _passed_by_agent ≤ _passed ≤ _total`. Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM fallback. The goal is to drive `_passed_by_test/_total` toward 1.0 over time, falling back to the `agent:` runner only when a SHALL is genuinely unprogrammable.
