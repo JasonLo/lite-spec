@@ -57,7 +57,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
    ```
 
 10. **Check the `CLAUDE.md` pointer block.** Grep `CLAUDE.md` at the repo root for the marker `<!-- lite-spec:pointer-block:start -->`. If the marker is present, the pointer block is already wired; do nothing. If the marker is missing (or `CLAUDE.md` itself is missing), tell the user to run `/ls-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill — `ls-init` is the single source of truth for `CLAUDE.md`.
-11. **Report** the new ID, the entry text including the resolved tag, how the tag was chosen (flag / auto / prompt), and confirmation that the constitution check passed.
+11. **Report** the new ID, the entry text including the resolved tag, how the tag was chosen (flag / auto / prompt), and confirmation that the constitution check passed. End the report with `Next: /ls-check --intent I-N` if the tagged intent's `status` is `draft` or `in_progress` (a logged decision usually implies code that should be re-verified against the intent). If the tag points at a `complete` or `superseded` intent, omit the `Next:` line. Follows the Handoff convention documented in `ls-init`.
 
 ## Mode 2 — Supersede
 
@@ -74,7 +74,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
    ```
    - **D-73:** Supersedes D-42 — switched to GraphQL because <reason> (2026-05-23). [intent: I-N]
    ```
-7. **Report** both entries, how the new tag was chosen, and the constitution-check result.
+7. **Report** both entries, how the new tag was chosen, and the constitution-check result. End the report with `Next: /ls-check --intent I-N` if the new entry's tagged intent is `draft` or `in_progress` (supersession reverses a prior choice — code almost certainly needs to follow). Otherwise omit the `Next:` line. Follows the Handoff convention documented in `ls-init`.
 
 ## Direct writes (without invoking this skill)
 

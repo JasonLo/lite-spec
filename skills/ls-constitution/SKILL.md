@@ -35,7 +35,7 @@ This skill has two modes: **ratify** (no constitution exists yet) and **amend** 
 4. **Assign each principle a `P-N` ID.** Number sequentially across the whole doc starting at `P-1`, no zero-padding (`P-1`, `P-9`, `P-42`). Group principles under the nine bucket headings that apply. Within a bucket, each principle is rendered as a list item: `- **P-N:** <principle text>` — same shape as decision entries (`D-N`) and intent IDs (`I-N`) so the three artifacts read consistently.
 5. **Write `specs/CONSTITUTION.md`.** Create `specs/` if it does not yet exist. The exact structure lives in [`CONSTITUTION.template.md`](CONSTITUTION.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<project-name>` with the inferred or user-supplied name, replace each `<P-N principles>` placeholder with the elicited principles for that bucket (formatted as `- **P-N:** <text>`), and drop any bucket that ended up with no principles (per step 2). Keep the bucket headings that survived, and the `## Amendments` heading, verbatim so other skills can grep for them. Substitute both `YYYY-MM-DD` placeholders (the preamble `Ratified:` line and the Amendments seed line) with today's date.
 6. **Check `CLAUDE.md` wiring** at the repo root. `ls-init` owns `CLAUDE.md` and is the single source of truth for its pointer block. Grep the repo-root `CLAUDE.md` for the marker `<!-- lite-spec:pointer-block:start -->` (the durable anchor `ls-init` writes via its template — robust against cosmetic heading edits). If the marker is present, assume the pointer block is already wired and do nothing. If the marker is missing (or `CLAUDE.md` doesn't exist), tell the user to run `/ls-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill.
-7. **Report** the principle count, the buckets used, and a one-line warning for each empty bucket (per step 2).
+7. **Report** the principle count, the buckets used, and a one-line warning for each empty bucket (per step 2). End the report with `Next: /ls-intent new` if `specs/INTENT/` is empty (ratification without a captured feature is rarely the final step). Otherwise omit the `Next:` line. Follows the Handoff convention documented in `ls-init`.
 
 ## Mode 2 — Amend (`specs/CONSTITUTION.md` exists)
 
@@ -58,7 +58,7 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
    - For *retire*: mark the principle as retired (`~~**P-N:** ...~~ [retired YYYY-MM-DD, reason]`) and renumber NOTHING — IDs are stable identifiers, retired IDs stay retired.
    - For *add*: append the new principle at the end of its bucket with the next sequential `P-N` ID (scan existing IDs across all buckets and use `max + 1`, no padding).
 6. **Append to `## Amendments`** with date, what changed, and the user's reason. The seed `- **YYYY-MM-DD** — Initial constitution ratified.` line is preserved unchanged, and each amendment is a new appended line below it. Dated entries carry the change history — there is no separate version field.
-7. **Report** the diff, the impact list, and a suggestion to run `ls-check` if any intents or code were flagged as affected.
+7. **Report** the diff and the impact list. End the report with `Next: /ls-check` if the impact list is non-empty (an amended principle may have created constitution drift in existing intents or code). Otherwise omit the `Next:` line. Follows the Handoff convention documented in `ls-init`.
 
 ## Validation Rules You MUST Enforce
 

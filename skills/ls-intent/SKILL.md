@@ -74,7 +74,7 @@ verdict_checked_at: null              # SKILL-MANAGED by ls-check
 8. **Validate against the constitution.** Walk each principle and confirm the intent doesn't violate it. If a violation exists, refuse to finalize and tell the user which principle is blocking — they MUST either revise the intent or invoke `/ls-constitution` to amend the principle.
 9. **Write `specs/INTENT/I-<N_new>-<slug>/intent.md`.** Read [`INTENT.template.md`](INTENT.template.md), substitute `<N>` → `N_new`, `<title>`, `<slug>`, `<user>` (from git config or env), `YYYY-MM-DD` → today, fill the section bodies with the elicited content, and write the result. Keep section headings verbatim so `ls-check` and other skills can grep for them. Initial frontmatter: `status: draft`, `opened: <today>`, all other skill-managed fields `null`.
 10. **Auto-trigger `ls-check --intent I-<N_new>`.** If `ls-check` is not installed, note that drift verification should be run manually once the implementation exists.
-11. **Report** the path, the assigned ID, word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved.
+11. **Report** the path, the assigned ID, word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved. Note that `ls-check` was auto-invoked and its report follows. **Do NOT emit a `Next:` line from `ls-intent` itself** — the auto-triggered `ls-check` run owns the handoff and ends with its own conditional `Next:` (see the Handoff convention in `ls-init`). On a fresh draft, expect `ls-check` to classify every cited test as `fail (test not found at <path>)` and emit no `Next:` line — that fail-heavy report is the intentional greenfield signal that implementation is the next step (code work doesn't get a `Next:` pointer per the convention). If `ls-check` is not installed, append a plain note that drift verification must be run manually once the implementation exists, and omit `Next:` entirely — never emit free text after the `Next:` token, since the convention requires `Next: /<skill> [args]` format.
 
 ## Subcommand 2 — `refine [--intent I-N]`
 
@@ -90,7 +90,7 @@ verdict_checked_at: null              # SKILL-MANAGED by ls-check
 6. **Validate against the constitution** again.
 7. **Append a new Change Log entry** with today's date, what changed, and a one-sentence reason.
 8. **Auto-trigger `ls-check --intent I-N`.** A Change Log append means drift is possible; checking immediately is cheaper than discovering it later.
-9. **Report** the diff and any self-critique flags.
+9. **Report** the diff and any self-critique flags. The auto-triggered `ls-check` report follows; let it own the `Next:` line per the Handoff convention in `ls-init`. Do NOT emit a `Next:` line from `ls-intent` itself. If `ls-check` is not installed, append a plain note that drift verification must be run manually, and omit `Next:` entirely — never emit free text after the `Next:` token.
 
 ## Subcommand 3 — `supersede --intent I-N --by-new "<title>"`
 
@@ -104,7 +104,7 @@ verdict_checked_at: null              # SKILL-MANAGED by ls-check
    - `closed: <today>` if not already set
    - Append `- **YYYY-MM-DD** — Superseded by I-<M>.` to its Change Log. Body sections (Problem, Outcome, Non-Goals, Constraints) are left untouched — they remain as the historical record of what I-N tried to do.
 5. **Auto-trigger `ls-check --intent I-<M>`** on the successor only — the predecessor is terminal and does not need re-checking. (`ls-check` will skip a `superseded` intent unless explicitly named.)
-6. **Report** both IDs, the successor's path, and any self-critique flags from the new draft.
+6. **Report** both IDs, the successor's path, and any self-critique flags from the new draft. The auto-triggered `ls-check` report follows; let it own the `Next:` line per the Handoff convention in `ls-init`. Do NOT emit a `Next:` line from `ls-intent` itself. If `ls-check` is not installed, append a plain note that drift verification must be run manually, and omit `Next:` entirely — never emit free text after the `Next:` token.
 
 ## EARS rules
 

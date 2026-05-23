@@ -114,7 +114,11 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 Intents checked: 2. Status changes this run: I-2 in_progress → complete (closed 2026-05-23).
 Across all intents: <N pass> (<M by test), <F fail>, <U unverifiable>, <D intent-ahead>.
 Test-citation coverage: <P>/<T> outcomes have a [test: ...] marker (<pct>%).
+
+Next: /ls-intent refine I-1
 ```
+
+The `Next:` line is **conditional** and follows the Handoff convention documented in `ls-init`. Emit it **only** when at least one outcome in the run was classified `unverifiable` (missing citation, vague EARS, unknown runner, whole-suite citation, or constitution-forbidden runner) — refining the intent is the unambiguous next step in those cases. Pick the lowest-numbered affected `I-N` **from the intents in this run's scope** — if invoked with `--intent I-K`, the affected intent is always `I-K` (it is the only intent in scope), regardless of unverifiable outcomes that may exist in other intents from prior runs. **Do NOT** emit `Next:` when the only findings are `fail` outcomes, `intent-ahead` drift, or constitution-principle failures — those resolve in code or via `/ls-constitution amend`, and `ls-check` can't tell which; the user's judgment owns the next move. When the run is clean (zero fail, zero unverifiable), omit `Next:` entirely — silence is the terminal signal.
 
 The bracketed status header per intent shows the **newly derived** status, the overall verdict ratio (`_passed`/`_total`), and the test-backed ratio (`_passed_by_test`/`_total`) — the latter is the stronger signal and the one to push toward 100%.
 

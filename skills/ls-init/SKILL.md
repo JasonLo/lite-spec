@@ -42,7 +42,7 @@ Before doing anything, scan and classify:
 1. **Confirm the project root** using the markers listed in Inputs. If unsure, ask the user once.
 2. **Create `specs/` and `specs/INTENT/`** as empty directories. Do NOT create `CONSTITUTION.md`, any `I-N-<slug>/` folder, or `DECISIONS.md` here — those go through their dedicated skills, which is the careful path. Do NOT add `.gitkeep` files; each directory becomes meaningful (and committable) the first time a spec skill writes into it. `specs/INTENT/` is the only spec subdirectory `ls-init` creates — it pre-exists so `/ls-intent new` doesn't have to bootstrap the tree on first use.
 3. **Write or update `CLAUDE.md`** at the repo root with the pointer block below. If `CLAUDE.md` already exists, do NOT overwrite it — instead, append the pointer block as a new section after existing content, and leave the rest alone.
-4. **Report** what was created, where the skills were found (or that they weren't), and the recommended next step (`/ls-constitution` if no constitution exists, otherwise `/ls-intent new`).
+4. **Report** what was created and where the skills were found (or that they weren't). End the report with `Next: /ls-constitution` — bootstrap creates an empty `specs/` tree, so `CONSTITUTION.md` is always missing after this run and ratifying it is the unambiguous next step. See "Handoff convention" below.
 
 ### Required `CLAUDE.md` pointer block
 
@@ -63,7 +63,11 @@ The repair path MUST be conservative — never overwrite existing user content, 
 3. **Add the pointer block to `CLAUDE.md`** only if `CLAUDE.md` lacks the `<!-- lite-spec:pointer-block:start -->` marker. If `CLAUDE.md` is absent entirely, create it with the full block (H1, "What this repo is", then the marker-wrapped three sections). If it exists but lacks the marker, append only the three lite-spec sections — wrapped in the start/end markers — after existing content. Never re-emit the `# CLAUDE.md` H1 or the "What this repo is" intro when appending to an existing file.
 4. **Do NOT touch existing `specs/CONSTITUTION.md`, any `specs/INTENT/I-*-*/intent.md`, or `specs/DECISIONS.md`.** If one of these is missing, simply note it in the report and suggest the relevant skill (`/ls-constitution`, `/ls-intent new`, or `/ls-decisions`).
 5. **Validate against `specs/CONSTITUTION.md`** if it exists. The repair MUST NOT introduce CLAUDE.md content that violates a principle (e.g., inlining a large doc when the constitution caps doc lengths — the spirit applies to CLAUDE.md too).
-6. **Report** the diff: what was added, what was left untouched, and which next skill the user should invoke for any missing spec file.
+6. **Report** the diff: what was added, what was left untouched, and which next skill the user should invoke for any missing spec file. End the report with a single `Next:` line **only** when the next step is unambiguous: `Next: /ls-constitution` if `CONSTITUTION.md` is the sole missing spec file, else `Next: /ls-intent new` if the `INTENT/` tree is the sole gap. **Never emit `Next: /ls-decisions`** — `DECISIONS.md` is created lazily on first decision append (see `ls-decisions` Mode 1 step 2), so a missing log file is not a runnable next step; `/ls-decisions` requires the user to come with a decision to record. If multiple spec files are missing, or `DECISIONS.md` is the only gap, list the missing files as plain bullets and omit the `Next:` line — the user picks. See "Handoff convention" below.
+
+## Handoff convention
+
+Every skill in the lite-spec family ends its run report with at most one `Next: /<skill> [args]` line — the suggested next action when the post-state clearly implies one. **Omit the line entirely when the next action is code work, "nothing", or genuinely ambiguous** — silence is the terminal signal, and a stale or pushy "Next:" line is worse than none. The user is free to ignore the suggestion; it's a pointer, not a command.
 
 ## Validation Rules You MUST Enforce
 
@@ -83,7 +87,7 @@ The repair path MUST be conservative — never overwrite existing user content, 
   - Mode used (bootstrap or repair).
   - Files created vs. files left untouched.
   - Skill reachability (per-project vs. global vs. missing).
-  - Recommended next step (specific skill to invoke).
+  - A conditional `Next: /<skill>` line per the Handoff convention above (omitted when the next action is ambiguous or there's nothing to suggest).
 
 ## What This Skill MUST NOT Do
 
