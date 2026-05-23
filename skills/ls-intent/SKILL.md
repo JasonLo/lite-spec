@@ -1,56 +1,102 @@
 ---
 name: ls-intent
-description: Draft or refine 2_INTENT.md — a one-page intent doc with problem, outcome (in EARS notation), non-goals, constraints, and an append-only change log. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, or wants to refine an existing intent. Triggers on "write an intent doc", "spec this feature", "capture intent", "draft 2_INTENT.md", "refine intent", "what's the intent", "/ls-intent".
+description: Draft, refine, or supersede an intent under specs/INTENT/IT-N-<slug>/intent.md — a one-page doc with problem, outcome (in EARS notation), non-goals, constraints, and an append-only change log, plus frontmatter status managed by ls-check. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, wants to refine an existing intent, or wants to retire an intent in favor of a successor. Triggers on "write an intent doc", "spec this feature", "capture intent", "new intent", "draft intent", "refine intent", "supersede intent", "what's the intent", "/ls-intent".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill
 ---
 
 # ls-intent
 
-You are the intent skill for **lite-spec**. You create and refine `specs/2_INTENT.md` — a one-page doc that captures **problem, outcome, non-goals, constraints, and change log** for a feature or project. Outcomes use EARS notation so drift can be checked mechanically.
+You are the intent skill for **lite-spec**. You create, refine, and supersede intent docs under `specs/INTENT/IT-N-<slug>/intent.md` — one folder per intent, with `experiments/` nested inside it. Each intent doc captures **problem, outcome, non-goals, constraints, and change log**, with skill-managed frontmatter (`status`, `verdict_*`, `closed`) maintained by `ls-check`. Outcomes use EARS notation so drift can be checked mechanically.
 
-This skill has two modes: **draft** (no `specs/2_INTENT.md` exists for this scope yet) and **refine** (one already exists and the user wants to update or re-critique it).
+This skill has three subcommands: **`new`**, **`refine`**, and **`supersede`**.
 
 ## Inputs
 
-- The current working directory MUST be a project root.
-- A loose feature description from the user, OR an existing `specs/2_INTENT.md` to refine.
-- If `specs/1_CONSTITUTION.md` exists, you MUST read it and validate your output against it.
+- The current working directory MUST be a project root and MUST contain `specs/INTENT/` (created by `/ls-init`). If it doesn't, refuse and tell the user to run `/ls-init`.
+- For `new`: a loose feature description and a title.
+- For `refine`: optionally `--intent IT-N` to scope to one intent; otherwise the skill auto-resolves (single open intent ⇒ use it; zero or many ⇒ prompt).
+- For `supersede`: `--intent IT-N` (the intent being retired) and `--by-new "<title>"` (the successor's title).
+- If `specs/CONSTITUTION.md` exists, you MUST read it and validate your output against it.
 
-## Mode 1 — Draft
+## Frontmatter contract
 
-1. **Read the constitution.** If `specs/1_CONSTITUTION.md` exists, read it. Keep its principles in mind for every step. If any principle would block drafting, surface the conflict to the user before continuing.
-2. **Elicit the five sections.** Ask one focused question per section that's underspecified. Do NOT ask questions the user has already implicitly answered. Skip a section only if it genuinely doesn't apply.
+Every `intent.md` carries this frontmatter:
+
+```yaml
+---
+id: IT-<N>                  # immutable; assigned at creation
+title: <title>              # user-edited via /ls-intent refine
+slug: <slug>                # immutable; derived from title at creation
+status: draft               # SKILL-MANAGED by ls-check (draft|in_progress|complete|superseded)
+opened: YYYY-MM-DD          # immutable; set at creation
+closed: null                # SKILL-MANAGED by ls-check (set on flip to complete; cleared on regression)
+superseded_by: null         # set by /ls-intent supersede (the only user-triggered frontmatter mutation)
+verdict_outcomes_passed: null   # SKILL-MANAGED by ls-check
+verdict_outcomes_total: null    # SKILL-MANAGED by ls-check
+verdict_checked_at: null        # SKILL-MANAGED by ls-check
+---
+```
+
+- **Skill-managed fields** (`status`, `closed`, `verdict_*`) are written by `ls-check`. Hand-edits to these will be overwritten on the next run.
+- **`superseded_by`** is set only by `/ls-intent supersede`.
+- **`title`** may be changed via `/ls-intent refine`. **`id`**, **`slug`**, and **`opened`** are immutable post-creation; the folder name `IT-N-<slug>/` is also immutable (renaming breaks the `superseded_by` chain and `[intent: IT-N]` references in `DECISIONS.md`).
+
+## Subcommand 1 — `new "<title>"`
+
+1. **Read the constitution.** If `specs/CONSTITUTION.md` exists, read it. Keep its principles in mind for every step. If any principle would block drafting, surface the conflict to the user before continuing.
+2. **Assign the ID.** Glob `specs/INTENT/IT-*-*/`. Extract `N` from each folder name; let `N_new = max(N) + 1` (or `1` if no existing intents).
+3. **Derive the slug.** Take the title, lowercase it, replace non-`[a-z0-9]` runs with single hyphens, strip leading/trailing hyphens. If the result is longer than 40 characters, split on `-` and drop trailing tokens until the joined length is ≤40 — never split mid-word, never reject a long title.
+4. **Create the folder.** `mkdir -p specs/INTENT/IT-<N_new>-<slug>/experiments/`. The `experiments/` subdir is created empty — it's the home for any experiment files that back this intent.
+5. **Elicit the five sections.** Ask one focused question per section that's underspecified. Do NOT ask questions the user has already implicitly answered. Skip a section only if it genuinely doesn't apply.
    - **Problem** — what's broken or missing today, in 1–3 sentences. Push for a concrete *current-state* description, not aspirational language.
    - **Outcome** — what success looks like, framed as 1–5 EARS statements. (See "EARS rules" below.)
    - **Non-Goals** — what is explicitly out of scope. If the user can't name 3+, suggest some based on adjacent territory you'd expect them to skip.
    - **Constraints** — technical, organizational, or design constraints that bound the solution.
-   - **Change Log** — seeded with `- **YYYY-MM-DD** — Initial draft.`
-3. **Write the EARS outcomes.** Every outcome statement MUST take the form `**WHEN** <trigger> **THE SYSTEM SHALL** <response>.` Reject vague responses. Examples:
+   - **Change Log** — seeded with `- **YYYY-MM-DD** — Initial draft.` (today's date).
+6. **Write the EARS outcomes.** Every outcome statement MUST take the form `**WHEN** <trigger> **THE SYSTEM SHALL** <response>.` Reject vague responses. Examples:
    - Bad: `THE SYSTEM SHALL be fast.` → push the user for a number: `under 100ms`, `p99 < 250ms`, `single render frame`.
    - Bad: `THE SYSTEM SHALL handle errors gracefully.` → push for behavior: `display a retry banner and preserve form input`.
    - If the user resists giving a measurable threshold, write `THE SYSTEM SHALL <response> (threshold TBD)` and add a self-critique flag — do not silently let vagueness slide.
-4. **Self-critique pass.** Before finalizing, run through the doc and flag, then fix, each of:
+7. **Self-critique pass.** Before finalizing, run through the doc and flag, then fix, each of:
    - **Vague EARS responses** — any "fast", "easy", "robust", "graceful" without a measurable companion.
-   - **Missing non-goals** — territory adjacent to the problem the user didn't exclude. Suggest 1–3 likely candidates.
-   - **Hidden assumptions** — claims that depend on something the user hasn't stated (e.g., a particular auth model, a specific deploy target).
+   - **Missing non-goals** — territory adjacent to the problem the user didn't exclude.
+   - **Hidden assumptions** — claims that depend on something the user hasn't stated.
    - **Scope-creep risks** — outcomes that secretly require building a much larger system.
    - **Unstated dependencies** — external services, libraries, or upstream work the outcome silently requires.
-   Incorporate fixes by asking the user about each flag, or by adjusting language directly when the fix is trivial.
-5. **Validate against the constitution.** Walk each constitutional principle and confirm the intent doesn't violate it. If a violation exists, refuse to finalize and tell the user which principle is blocking — they MUST either revise the intent or invoke `ls-constitution` to amend the principle.
-6. **Write `specs/2_INTENT.md`**. Create `specs/` if it does not yet exist. The exact structure lives in [`INTENT.template.md`](INTENT.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<name>`, `<user>`, and `YYYY-MM-DD` with the inferred or user-supplied values, fill the section bodies with the elicited content, and write the result to `specs/2_INTENT.md`. Keep section headings verbatim so `ls-check` and other skills can grep for them.
-7. **Auto-trigger `ls-check`** with the new doc, treating this as an initial-draft Change Log entry. If `ls-check` is not installed, note that drift verification should be run manually once the implementation exists.
-8. **Report** word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved.
+8. **Validate against the constitution.** Walk each principle and confirm the intent doesn't violate it. If a violation exists, refuse to finalize and tell the user which principle is blocking — they MUST either revise the intent or invoke `/ls-constitution` to amend the principle.
+9. **Write `specs/INTENT/IT-<N_new>-<slug>/intent.md`.** Read [`INTENT.template.md`](INTENT.template.md), substitute `<N>` → `N_new`, `<title>`, `<slug>`, `<user>` (from git config or env), `YYYY-MM-DD` → today, fill the section bodies with the elicited content, and write the result. Keep section headings verbatim so `ls-check` and other skills can grep for them. Initial frontmatter: `status: draft`, `opened: <today>`, all other skill-managed fields `null`.
+10. **Auto-trigger `ls-check --intent IT-<N_new>`.** If `ls-check` is not installed, note that drift verification should be run manually once the implementation exists.
+11. **Report** the path, the assigned ID, word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved.
 
-## Mode 2 — Refine
+## Subcommand 2 — `refine [--intent IT-N]`
 
-1. **Read** the existing `specs/2_INTENT.md` and the constitution.
-2. **Ask the user what's changing** — a clarification, a new outcome, a tightened non-goal, a removed constraint. Do not guess.
-3. **Apply the change** in place for non-historical sections (Problem, Outcome, Non-Goals, Constraints, Status, Last updated). NEVER delete or overwrite Change Log entries.
-4. **Re-run the self-critique pass** on the affected sections.
-5. **Validate against the constitution** again.
-6. **Append a new Change Log entry** with date, what changed, and a one-sentence reason.
-7. **Auto-trigger `ls-check`.** A Change Log append means drift is possible; checking immediately is cheaper than discovering it later. If the skill is unavailable, surface a reminder.
-8. **Report** the diff and any self-critique flags.
+1. **Resolve the target intent.**
+   - If `--intent IT-N` is passed, use it. If no folder matches `specs/INTENT/IT-N-*/`, refuse and list the existing IDs.
+   - Otherwise, glob `specs/INTENT/IT-*-*/intent.md` and read each frontmatter `status`. Collect those with `status` in `{draft, in_progress}`.
+     - Exactly one ⇒ use it; report the choice in the run output.
+     - Zero or many ⇒ prompt the user for `--intent IT-N`. Do NOT guess.
+2. **Read** the intent.md and the constitution.
+3. **Ask the user what's changing** — a clarification, a new outcome, a tightened non-goal, a removed constraint, a title update. Do not guess.
+4. **Apply the change** in place to the body sections (Problem, Outcome, Non-Goals, Constraints, the `Last updated:` line, and optionally the `title:` frontmatter field). NEVER touch skill-managed frontmatter fields. NEVER delete or overwrite Change Log entries.
+5. **Re-run the self-critique pass** on the affected sections.
+6. **Validate against the constitution** again.
+7. **Append a new Change Log entry** with today's date, what changed, and a one-sentence reason.
+8. **Auto-trigger `ls-check --intent IT-N`.** A Change Log append means drift is possible; checking immediately is cheaper than discovering it later.
+9. **Report** the diff and any self-critique flags.
+
+## Subcommand 3 — `supersede --intent IT-N --by-new "<title>"`
+
+1. **Resolve `IT-N`.** If `--intent` is missing, apply the same single-open-auto-pick rule as `refine`. If the resolved intent already has `status: superseded`, refuse — an intent can be superseded only once.
+2. **Read the constitution.**
+3. **Open the successor.** Run the full `new` subcommand pipeline (elicit, write EARS, self-critique, constitution check) to produce `specs/INTENT/IT-<M>-<new-slug>/intent.md`, where `M = max(existing N) + 1`. Seed the successor's Change Log with two lines:
+   - `- **YYYY-MM-DD** — Initial draft. Supersedes IT-<N>.`
+4. **Update the predecessor `IT-N/intent.md` frontmatter:**
+   - `status: superseded`
+   - `superseded_by: IT-<M>`
+   - `closed: <today>` if not already set
+   - Append `- **YYYY-MM-DD** — Superseded by IT-<M>.` to its Change Log. Body sections (Problem, Outcome, Non-Goals, Constraints) are left untouched — they remain as the historical record of what IT-N tried to do.
+5. **Auto-trigger `ls-check --intent IT-<M>`** on the successor only — the predecessor is terminal and does not need re-checking. (`ls-check` will skip a `superseded` intent unless explicitly named.)
+6. **Report** both IDs, the successor's path, and any self-critique flags from the new draft.
 
 ## EARS rules
 
@@ -64,6 +110,9 @@ This skill has two modes: **draft** (no `specs/2_INTENT.md` exists for this scop
 
 - NEVER write outcomes in non-EARS prose.
 - NEVER delete or rewrite past Change Log entries — they are append-only.
-- NEVER finalize an intent that violates `specs/1_CONSTITUTION.md`. Surface the conflict instead.
+- NEVER touch skill-managed frontmatter fields (`status`, `closed`, `verdict_outcomes_passed`, `verdict_outcomes_total`, `verdict_checked_at`) directly — only `ls-check` writes those.
+- NEVER rename an existing `IT-N-<slug>/` folder. The folder name is the durable handle that `superseded_by` and `[intent: IT-N]` references in `DECISIONS.md` rely on.
+- NEVER finalize an intent that violates `specs/CONSTITUTION.md`. Surface the conflict instead.
 - NEVER skip the self-critique pass — even on tiny refinements, walk the five flags.
 - NEVER fabricate user answers. If a section is genuinely unknown, leave it as `TBD` with a self-critique flag rather than inventing detail.
+- NEVER offer a `complete` subcommand — completion is *derived* by `ls-check` from outcome pass-counts, not declared by the user.

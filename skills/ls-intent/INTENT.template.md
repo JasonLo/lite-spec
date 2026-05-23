@@ -1,7 +1,19 @@
-# Intent Doc: <name>
+---
+id: IT-<N>
+title: <title>
+slug: <slug>
+status: draft
+opened: YYYY-MM-DD
+closed: null
+superseded_by: null
+verdict_outcomes_passed: null
+verdict_outcomes_total: null
+verdict_checked_at: null
+---
+
+# Intent: <title>
 
 - **Author:** <user>
-- **Status:** Draft
 - **Last updated:** YYYY-MM-DD
 
 ## Problem

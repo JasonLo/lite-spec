@@ -24,47 +24,24 @@ Creates `specs/` and wires the `CLAUDE.md` pointer block so future Claude sessio
 
 ### Basic flow
 
-1. `/ls-constitution    # once: ratify project principles (amend later as needed)`
-1. `/ls-intent          # capture each new feature: problem, EARS outcomes, non-goals`
+1. `/ls-constitution             # once: ratify project principles (amend later as needed)`
+1. `/ls-intent new "<title>"     # open a new intent: problem, EARS outcomes, non-goals`
 1. `... write code ...`
-1. `/ls-decisions       # log non-trivial choices (or let Claude append directly)`
-1. `/ls-check           # verify code still satisfies intent + constitution (or let Claude auto-invoke)`
+1. `/ls-decisions                # log non-trivial choices (or let Claude append directly)`
+1. `/ls-check                    # verify code still satisfies open intents + constitution`
+
+Each `/ls-intent new` creates `specs/INTENT/IT-N-<slug>/intent.md` plus an `experiments/` subfolder. Multiple intents may be open at once; `/ls-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
 
 ## The skills
 
 | Skill | Artifact | When to use |
 |---|---|---|
-| [`ls-init`](skills/ls-init/SKILL.md) | `specs/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
-| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/1_CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. |
-| [`ls-intent`](skills/ls-intent/SKILL.md) | `specs/2_INTENT.md` | When describing a new feature. Produces a one-page doc with EARS outcomes (acceptance criteria the drift checker can grade mechanically). |
-| [`ls-decisions`](skills/ls-decisions/SKILL.md) | `specs/3_DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale; supports supersession. Agent-writable: Claude may append directly, or humans can use the guided path. |
-| [`ls-check`](skills/ls-check/SKILL.md) | drift report (stdout) | Manual or auto-invoked — after edits to `2_INTENT.md` or `1_CONSTITUTION.md`, as a pre-PR audit, or on phrases like "check for drift" / "verify against spec". Agent runs the SHALL-by-SHALL pass; human reviews the report (code, intent, and constitution drift). |
+| [`ls-init`](skills/ls-init/SKILL.md) | `specs/` + `specs/INTENT/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
+| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. |
+| [`ls-intent`](skills/ls-intent/SKILL.md) | `specs/INTENT/IT-N-<slug>/intent.md` | When opening, refining, or superseding an intent. Each intent is its own folder with EARS outcomes and a nested `experiments/`. Frontmatter `status` is derived by `ls-check`. |
+| [`ls-decisions`](skills/ls-decisions/SKILL.md) | `specs/DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale and an `[intent: IT-N]` tag; supports supersession. Agent-writable. |
+| [`ls-check`](skills/ls-check/SKILL.md) | drift report (stdout) + `intent.md` frontmatter writeback | Manual or auto-invoked — after edits to any `intent.md` or `CONSTITUTION.md`, as a pre-PR audit, or on phrases like "check for drift" / "verify against spec". Iterates every open intent; writes `status`, `verdict_*`, and `closed` back to each `intent.md`. |
 
 ## How it fits together
 
-Every artifact is plain Markdown in-repo — no external services, databases, or CI hooks. `1_CONSTITUTION.md` and `2_INTENT.md` are human-owned (guided path only); `3_DECISIONS.md` is agent-writable so Claude can append at coding speed. Intent outcomes use **EARS** (Easy Approach to Requirements Syntax) — phrased as `WHEN <trigger> THE SYSTEM SHALL <response>` (with `WHILE …` for continuous behavior and `IF … THEN THE SYSTEM SHALL …` for conditional invariants) — so `ls-check` can match each SHALL to code mechanically.
-
-## What the outputs look like
-
-A line appended to `specs/3_DECISIONS.md`:
-
-```
-D-0007: Decided to adopt SQLite over Postgres for local dev because zero-setup matters more than concurrency at this stage (2026-05-22). Supersedes D-0003.
-```
-
-A drift report printed by `/ls-check`:
-
-```markdown
-# ls-check report — 2026-05-22
-
-## Code drift
-- [x] O-1: WHEN the user clicks Save, THE SYSTEM SHALL persist edits — pass. Implemented at src/profile.tsx:42.
-- [ ] O-2: WHILE editing, THE SYSTEM SHALL auto-save within 500ms — fail. No debounce found in src/profile.tsx.
-- [?] O-3: WHEN navigating between pages, THE SYSTEM SHALL feel responsive — unverifiable. Re-invoke /ls-intent to refine.
-
-## Constitution drift
-- [ ] Principle 3 (no third-party CDNs) — fail. src/layout.tsx imports @vercel/analytics.
-
-## Summary
-1 pass, 2 fail, 1 unverifiable, 0 intent-ahead.
-```
+Plain Markdown, no external services. `CONSTITUTION.md` and the `INTENT/` tree are human-owned (skill-guided); `DECISIONS.md` is agent-writable. EARS outcomes (`WHEN <trigger> THE SYSTEM SHALL <response>`) let `ls-check` grade each SHALL against code and derive each intent's `status`. Decisions carry an `[intent: IT-N]` tag linking them back.
