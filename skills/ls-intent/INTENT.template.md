@@ -1,5 +1,5 @@
 ---
-id: IT-<N>
+id: I-<N>
 title: <title>
 slug: <slug>
 status: draft

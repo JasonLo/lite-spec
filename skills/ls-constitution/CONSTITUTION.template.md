@@ -6,39 +6,39 @@ Non-negotiable project principles. Every other `ls-` skill validates its output 
 
 ## Scope and surface area
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Stack choice
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Architecture
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## File format
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Artifacts
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Boundaries
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Code quality
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Testing
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Security
 
-<numbered MUST/SHALL/NEVER principles>
+<P-N principles, formatted as `- **P-N:** <MUST/SHALL/NEVER principle text>`>
 
 ## Amendments
 

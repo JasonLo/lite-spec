@@ -32,8 +32,8 @@ This skill has two modes: **ratify** (no constitution exists yet) and **amend** 
 
    After elicitation, bucketize what the user gave you. For any bucket that ended up empty, surface a one-line warning in the final report ("No principles for X — fine for now; revisit if X becomes contentious."). An empty bucket is a valid choice, not an error — drop empty buckets from the written file (see step 5).
 3. **Phrase every principle in MUST/SHALL/NEVER form.** If the user says "we prefer X" or "try to do Y", push back: *"Should this be a hard rule or a soft preference? The constitution only holds hard rules — soft preferences belong in docs."* If hard, rewrite as MUST/SHALL/NEVER. If soft, drop it.
-4. **Number the principles** sequentially across the whole doc, and group them under the nine bucket headings that apply.
-5. **Write `specs/CONSTITUTION.md`.** Create `specs/` if it does not yet exist. The exact structure lives in [`CONSTITUTION.template.md`](CONSTITUTION.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<project-name>` with the inferred or user-supplied name, replace each `<numbered MUST/SHALL/NEVER principles>` placeholder with the elicited principles for that bucket, and drop any bucket that ended up with no principles (per step 2). Keep the bucket headings that survived, and the `## Amendments` heading, verbatim so other skills can grep for them. Substitute both `YYYY-MM-DD` placeholders (the preamble `Ratified:` line and the Amendments seed line) with today's date.
+4. **Assign each principle a `P-N` ID.** Number sequentially across the whole doc starting at `P-1`, no zero-padding (`P-1`, `P-9`, `P-42`). Group principles under the nine bucket headings that apply. Within a bucket, each principle is rendered as a list item: `- **P-N:** <principle text>` — same shape as decision entries (`D-N`) and intent IDs (`I-N`) so the three artifacts read consistently.
+5. **Write `specs/CONSTITUTION.md`.** Create `specs/` if it does not yet exist. The exact structure lives in [`CONSTITUTION.template.md`](CONSTITUTION.template.md) (sibling of this `SKILL.md`). Read that file at runtime, substitute `<project-name>` with the inferred or user-supplied name, replace each `<P-N principles>` placeholder with the elicited principles for that bucket (formatted as `- **P-N:** <text>`), and drop any bucket that ended up with no principles (per step 2). Keep the bucket headings that survived, and the `## Amendments` heading, verbatim so other skills can grep for them. Substitute both `YYYY-MM-DD` placeholders (the preamble `Ratified:` line and the Amendments seed line) with today's date.
 6. **Check `CLAUDE.md` wiring** at the repo root. `ls-init` owns `CLAUDE.md` and is the single source of truth for its pointer block. Grep the repo-root `CLAUDE.md` for the marker `<!-- lite-spec:pointer-block:start -->` (the durable anchor `ls-init` writes via its template — robust against cosmetic heading edits). If the marker is present, assume the pointer block is already wired and do nothing. If the marker is missing (or `CLAUDE.md` doesn't exist), tell the user to run `/ls-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill.
 7. **Report** the principle count, the buckets used, and a one-line warning for each empty bucket (per step 2).
 
@@ -44,7 +44,7 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
 1. **Read** the current `specs/CONSTITUTION.md`.
 2. **Classify the amendment**: *add*, *modify*, or *retire* a principle.
 3. **Surface impact**. Scan the repo for files that may be affected:
-   - Glob `specs/INTENT/IT-*-*/intent.md` and grep each for content that interacts with the principle. Report impact per intent ID.
+   - Glob `specs/INTENT/I-*-*/intent.md` and grep each for content that interacts with the principle. Report impact per intent ID.
    - Grep `specs/DECISIONS.md` for decisions that lean on or contradict the principle.
    - Grep the code surface (`skills/`, `src/`, top-level) for the keywords from the principle.
    - Produce a short impact list: which intents (by ID), decisions, and code paths would be affected.
@@ -55,8 +55,8 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
    - If the user does not say yes, stop. Do not write anything.
 5. **Apply.**
    - For *modify*: edit the principle in place; do NOT delete the prior phrasing if it changes the principle's meaning — instead, mark it as superseded inline (`~~old text~~ [superseded YYYY-MM-DD]`) and add the new text below.
-   - For *retire*: mark the principle as retired (`~~Principle N: ...~~ [retired YYYY-MM-DD, reason]`) and renumber NOTHING — numbers are stable identifiers.
-   - For *add*: append the new principle at the end of its bucket with the next sequential number.
+   - For *retire*: mark the principle as retired (`~~**P-N:** ...~~ [retired YYYY-MM-DD, reason]`) and renumber NOTHING — IDs are stable identifiers, retired IDs stay retired.
+   - For *add*: append the new principle at the end of its bucket with the next sequential `P-N` ID (scan existing IDs across all buckets and use `max + 1`, no padding).
 6. **Append to `## Amendments`** with date, what changed, and the user's reason. The seed `- **YYYY-MM-DD** — Initial constitution ratified.` line is preserved unchanged, and each amendment is a new appended line below it. Dated entries carry the change history — there is no separate version field.
 7. **Report** the diff, the impact list, and a suggestion to run `ls-check` if any intents or code were flagged as affected.
 
@@ -71,7 +71,7 @@ Amendments are the **careful path** — the user MUST explicitly invoke the skil
 
 - A single `specs/CONSTITUTION.md` with:
   - A preamble with a `Ratified:` line.
-  - Numbered principles grouped under whichever bucket headings survived elicitation.
+  - Principles formatted as `- **P-N:** <text>`, grouped under whichever bucket headings survived elicitation. IDs are sequential across the whole doc (not per-bucket) and stable forever — retired IDs are never reused.
   - An `## Amendments` section, append-only. Dated entries carry change history; no separate version field.
 - A `CLAUDE.md` pointer at the repo root referencing `specs/CONSTITUTION.md`.
 - A short stdout report: principle count, buckets touched, and (for amendments) the impact list.

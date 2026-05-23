@@ -18,20 +18,20 @@ Verification is mechanical: each SHALL is checked individually, not vibe-checked
 
 ## Inputs
 
-- The current working directory MUST contain `specs/INTENT/` with at least one `IT-*-*/intent.md`. `specs/CONSTITUTION.md` is strongly recommended.
-- Optional `--intent IT-N` flag scopes the run to one intent (used by `ls-intent` after `new`/`refine`/`supersede`).
+- The current working directory MUST contain `specs/INTENT/` with at least one `I-*-*/intent.md`. `specs/CONSTITUTION.md` is strongly recommended.
+- Optional `--intent I-N` flag scopes the run to one intent (used by `ls-intent` after `new`/`refine`/`supersede`).
 - Optional free-text scope hint from the user (e.g., "check the toggle feature") narrows the code surface for the run.
 
 ## Discovery
 
-1. Glob `specs/INTENT/IT-*-*/intent.md`. Read each one's frontmatter.
+1. Glob `specs/INTENT/I-*-*/intent.md`. Read each one's frontmatter.
 2. **Without `--intent`:** filter to non-terminal intents (`status not in {complete, superseded}`). Iterate each.
-3. **With `--intent IT-N`:** run on that one intent regardless of status. (This is how a regression on a previously-`complete` intent gets caught — and how a freshly-`new`'d draft gets its first verdict.)
+3. **With `--intent I-N`:** run on that one intent regardless of status. (This is how a regression on a previously-`complete` intent gets caught — and how a freshly-`new`'d draft gets its first verdict.)
 4. If no intents match, refuse with a message naming which intents exist and what their statuses are. Suggest `/ls-intent new` if the tree is empty.
 
 ## Per-intent procedure
 
-For each selected intent `IT-N`:
+For each selected intent `I-N`:
 
 1. **Read frontmatter and body.** Extract every EARS statement from the `## Outcome` section. Number them in order of appearance: `O-1`, `O-2`, ….
 2. **Read `specs/CONSTITUTION.md`** if present (read it once per ls-check run, not per intent). Number the principles by their existing IDs.
@@ -40,7 +40,7 @@ For each selected intent `IT-N`:
    - `pass` — implementation satisfies the SHALL. Cite the file:line where the satisfying behavior lives.
    - `fail` — implementation contradicts or omits the SHALL. Cite the file:line where the contradiction lives, or note "no implementation found" and where you searched.
    - `unverifiable` — the SHALL is genuinely not mechanically checkable (e.g., a UX-feel claim). Flag it so the user can either rewrite the EARS or accept the limitation.
-5. **For each `O-N`, check intent-drift.** Compare the most recent commit touching this intent's file (`git log -1 --format=%ct -- specs/INTENT/IT-N-<slug>/intent.md`) against the most recent commit touching the code file you cited in step 4 (`git log -1 --format=%ct -- <file>`). Both sides are Unix timestamps (`%ct`), so the comparison is a single integer test — no date-string normalization needed. If the intent commit is strictly newer, flag `intent ahead` — the intent moved but the code didn't.
+5. **For each `O-N`, check intent-drift.** Compare the most recent commit touching this intent's file (`git log -1 --format=%ct -- specs/INTENT/I-N-<slug>/intent.md`) against the most recent commit touching the code file you cited in step 4 (`git log -1 --format=%ct -- <file>`). Both sides are Unix timestamps (`%ct`), so the comparison is a single integer test — no date-string normalization needed. If the intent commit is strictly newer, flag `intent ahead` — the intent moved but the code didn't.
 6. **Compute the verdict counts** (unverifiable is excluded from the total, per design):
    - `verdict_outcomes_total = count(O-N classified as pass or fail)`
    - `verdict_outcomes_passed = count(O-N classified as pass)`
@@ -49,12 +49,13 @@ For each selected intent `IT-N`:
    - `complete` iff `verdict_outcomes_total > 0` AND `verdict_outcomes_passed == verdict_outcomes_total`
    - `in_progress` iff `verdict_outcomes_passed > 0` AND `verdict_outcomes_passed < verdict_outcomes_total`
    - `draft` otherwise (covers `_total == 0` and `_passed == 0`)
-   - **Exception:** if the existing frontmatter `status` is `superseded`, leave it untouched and skip the closed/verdict writeback for this intent (you only got here because `--intent IT-N` named it explicitly).
+   - **Exception:** if the existing frontmatter `status` is `superseded`, leave it untouched and skip the closed/verdict writeback for this intent (you only got here because `--intent I-N` named it explicitly).
+   - **All-unverifiable warning:** if the intent has outcomes but every one was classified `unverifiable` (so `_total == 0` while the body's `## Outcome` section is non-empty), status stays at `draft` and the intent can never reach `complete`. Emit a warning in the per-intent report block: `WARNING: all outcomes are unverifiable — re-invoke /ls-intent refine to make at least one outcome mechanically checkable.` Do not silently leave the user stuck.
 8. **Update `closed`:**
    - Flipping to `complete` (from anything else this run): set `closed` to today's ISO date (date, not full timestamp — humans read this).
    - Flipping away from `complete` (regression): set `closed: null`.
    - No flip: leave `closed` as-is.
-9. **Write the updated frontmatter back to `intent.md`.** Frontmatter only — never touch the body. Preserve key order and YAML formatting.
+9. **Write the updated frontmatter back to `intent.md`.** Frontmatter only — never touch the body (everything after the closing `---` is read-only here). Preserve key order, YAML formatting, and **any unrecognized keys** — other skills or future versions may add fields not enumerated in step 7's contract; leave them untouched rather than silently dropping them. **Skip the writeback entirely if no field would change.** Specifically: if the freshly-derived `status`, `closed`, `verdict_outcomes_passed`, and `verdict_outcomes_total` all match the existing values, do NOT update `verdict_checked_at` and do NOT rewrite the file. This prevents constant git churn from `/ls-check` runs that found no semantic change.
 
 ## Constitution-drift section
 
@@ -67,7 +68,7 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 ```markdown
 # ls-check report — YYYY-MM-DD
 
-## IT-1: <title>  [status: in_progress, 2/4 outcomes passing]
+## I-1: <title>  [status: in_progress, 2/4 outcomes passing]
 
 ### Code drift
 - [x] O-1: <EARS text> — pass. Implemented at <file:line>.
@@ -77,18 +78,18 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 ### Intent drift
 - O-4 — intent ahead. intent.md updated 2026-05-22; relevant code last touched 2026-04-30.
 
-## IT-2: <title>  [status: complete, 5/5 outcomes passing]
+## I-2: <title>  [status: complete, 5/5 outcomes passing]
 
 ### Code drift
 - [x] O-1: ... — pass. ...
 ... (one block per checked intent)
 
 ## Constitution drift
-- [x] Principle 9 (EARS notation) — pass.
-- [ ] Principle 14 (static typing) — fail. `src/foo.ts` uses `any` at line 42.
+- [x] P-9 (EARS notation) — pass.
+- [ ] P-14 (static typing) — fail. `src/foo.ts` uses `any` at line 42.
 
 ## Summary
-Intents checked: 2. Status changes this run: IT-2 in_progress → complete (closed 2026-05-23).
+Intents checked: 2. Status changes this run: I-2 in_progress → complete (closed 2026-05-23).
 Across all intents: <N pass>, <M fail>, <K unverifiable>, <J intent-ahead>.
 ```
 
@@ -105,8 +106,10 @@ The bracketed status header per intent shows the **newly derived** status (post-
 
 - **No `specs/INTENT/` or empty directory** — refuse to run and tell the user to invoke `/ls-intent new` first.
 - **No `specs/CONSTITUTION.md`** — proceed without the constitution-drift section, and note the omission in the report.
-- **Intent has no `## Outcome` section or no EARS statements** — refuse for that intent (skip it in the multi-intent loop), continue with the others, and surface a self-critique flag suggesting `/ls-intent refine` on the affected ID.
-- **`--intent IT-N` does not exist** — refuse, list existing IDs and statuses.
+- **Intent has no `## Outcome` section or no EARS statements** — skip it in the multi-intent loop with NO frontmatter writeback (the intent's frontmatter, including `verdict_checked_at`, is left untouched). Continue with the other intents and name the skipped one in the report with a self-critique flag suggesting `/ls-intent refine`.
+- **`--intent I-N` does not exist** — refuse, list existing IDs and statuses.
+- **Malformed YAML frontmatter or missing `---` delimiters** — skip that intent in the multi-intent loop with NO writeback, note the parse error in the report, and suggest `/ls-intent refine` (or manual repair). Never partial-write a file whose frontmatter couldn't be parsed.
+- **Legacy intent.md without a `status:` field** (e.g., a hand-created or pre-refactor file) — treat as if `status: draft`, run the full check, and produce a normal writeback (which will add the missing field). Do NOT crash. Other unrecognized legacy keys are preserved verbatim per step 9.
 - **No code yet (greenfield)** — every `O-N` becomes `fail (no implementation found)`. Status stays `draft`. That's a valid pre-implementation snapshot, not an error.
 
 ## What This Skill MUST NOT Do
