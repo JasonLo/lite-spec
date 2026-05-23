@@ -37,7 +37,7 @@ Each `/ls-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` plus an `exper
 | Skill | Artifact | When to use |
 |---|---|---|
 | [`ls-init`](skills/ls-init/SKILL.md) | `specs/` + `specs/INTENT/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
-| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. |
+| [`ls-constitution`](skills/ls-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. In ratify mode, surveys the codebase first to propose candidate principles from observed conventions (test runner, linter, package manager, etc.). |
 | [`ls-intent`](skills/ls-intent/SKILL.md) | `specs/INTENT/I-N-<slug>/intent.md` | When opening, refining, or superseding an intent. Each intent is its own folder with EARS outcomes and a nested `experiments/`. Frontmatter `status` is derived by `ls-check`. |
 | [`ls-decisions`](skills/ls-decisions/SKILL.md) | `specs/DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale and an `[intent: I-N]` tag; supports supersession. Agent-writable. |
 | [`ls-check`](skills/ls-check/SKILL.md) | drift report (stdout) + `intent.md` frontmatter writeback | Manual or auto-invoked — after edits to any `intent.md` or `CONSTITUTION.md`, as a pre-PR audit, or on phrases like "check for drift" / "verify against spec". Iterates every open intent; writes `status`, `verdict_*`, and `closed` back to each `intent.md`. |
