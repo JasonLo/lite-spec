@@ -45,3 +45,13 @@ Each `/ls-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` plus an `exper
 ## How it fits together
 
 Plain Markdown, no external services. `CONSTITUTION.md` and the `INTENT/` tree are human-owned (skill-guided); `DECISIONS.md` is agent-writable. EARS outcomes (`WHEN <trigger> THE SYSTEM SHALL <response>`) let `ls-check` grade each SHALL against code and derive each intent's `status`. Decisions carry an `[intent: I-N]` tag linking them back.
+
+## Test-backed verdicts
+
+Each EARS outcome may carry a `[test: <runner>:<target>]` citation. When present, `ls-check` executes that test (via `pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, or a `shell:` escape hatch) and uses the exit code — not an LLM grep — to decide pass vs. fail.
+
+```markdown
+- **WHEN** user submits the form **THE SYSTEM SHALL** show a toast within 200ms. [test: pytest:tests/test_form.py::test_toast_latency]
+```
+
+`ls-check` then writes two ratios back to the intent's frontmatter: `verdict_outcomes_passed/_total` (overall) and `verdict_outcomes_passed_by_test/_total` (strictly stronger — only test-executed passes count). Outcomes without a citation fall back to grep + LLM judgment and are explicitly flagged in the report; the goal is to drive the by-test ratio toward 1.0 over time.
