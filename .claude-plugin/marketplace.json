@@ -10,7 +10,7 @@
       "name": "lite-spec",
       "source": "./",
       "description": "The spec-* skill family: spec-init, spec-constitution, spec-intent, spec-decisions, spec-check.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Jason Lo"
       },
