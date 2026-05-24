@@ -1,0 +1,16 @@
+[project]
+name = "lite-spec-evals"
+version = "0.0.1"
+description = "A/B evaluation harness for lite-spec deltas."
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+judge = ["anthropic>=0.40.0"]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

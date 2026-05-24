@@ -1,0 +1,8 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# generated eval outputs — never commit
+reports/*/
+!reports/.gitkeep

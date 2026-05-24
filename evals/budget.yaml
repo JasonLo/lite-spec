@@ -1,0 +1,49 @@
+# Budget tiers for the eval harness.
+#
+# Pricing constants reflect Claude Opus 4.7 list price as of 2026-05.
+# Update both numbers and the `pricing_as_of` field when re-baselining.
+
+pricing_as_of: "2026-05-24"
+pricing_model: "claude-opus-4-7"
+input_per_mtok_usd: 15.00
+output_per_mtok_usd: 75.00
+cached_input_per_mtok_usd: 1.50   # 90% discount on cache reads
+
+tiers:
+  shoestring:
+    n_tasks: 5
+    judges: 1
+    position_swap: true
+    consistency_reruns: 0
+    target_usd_min: 20
+    target_usd_max: 40
+    abort_above_usd: 50
+    detectable_effect_pp: 15
+    caveat: |
+      Shoestring tier reliably detects deltas with >=15-20pp effect on the
+      weighted score. Smaller deltas are not statistically distinguishable
+      from noise at N=5.
+  moderate:
+    n_tasks: 10
+    judges: 1
+    position_swap: true
+    consistency_reruns: 2
+    cross_family_sanity_sample: 0.2
+    target_usd_min: 100
+    target_usd_max: 200
+    abort_above_usd: 250
+    detectable_effect_pp: 8
+    caveat: |
+      Moderate tier with consistency reruns and cross-family sanity sampling
+      catches deltas down to ~8pp.
+  rigorous:
+    n_tasks: 30
+    judges: 3
+    position_swap: true
+    consistency_reruns: 3
+    target_usd_min: 500
+    target_usd_max: 1000
+    abort_above_usd: 1200
+    detectable_effect_pp: 4
+    caveat: |
+      Rigorous tier with 3-judge panel and N=30 catches deltas down to ~4pp.
