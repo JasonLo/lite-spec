@@ -3,10 +3,10 @@
 #
 # Usage:
 #   scripts/bump-version.sh {major|minor|patch}              # bump + commit + tag + push + gh release
-#   scripts/bump-version.sh {major|minor|patch} --bump-only  # only edit the manifests, no git/release
+#   scripts/bump-version.sh {major|minor|patch} --bump-only  # only edit the manifest, no git/release
 #
 # Full mode (default) performs, in order:
-#   1. Bumps "version" in .claude-plugin/{plugin,marketplace}.json
+#   1. Bumps "version" in .claude-plugin/plugin.json (single source of truth)
 #   2. git commit -m "chore: release v<new>"
 #   3. git tag v<new>
 #   4. git push origin <current-branch> --follow-tags
@@ -21,8 +21,7 @@ usage() {
 usage: $0 {major|minor|patch} [--bump-only]
 
 Bumps the version in:
-  .claude-plugin/plugin.json       (top-level "version")
-  .claude-plugin/marketplace.json  (plugins[0].version)
+  .claude-plugin/plugin.json       (top-level "version" — single source of truth)
 
 Without --bump-only, also commits, tags v<new>, pushes the current branch with
 the tag, and creates a GitHub release with --generate-notes. Requires a clean
@@ -50,11 +49,8 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 PLUGIN=".claude-plugin/plugin.json"
-MARKET=".claude-plugin/marketplace.json"
 
-for f in "$PLUGIN" "$MARKET"; do
-    [ -f "$f" ] || { echo "error: $f not found" >&2; exit 1; }
-done
+[ -f "$PLUGIN" ] || { echo "error: $PLUGIN not found" >&2; exit 1; }
 
 # Preflight (full-release mode only).
 if [ "$BUMP_ONLY" -eq 0 ]; then
@@ -75,16 +71,8 @@ extract_version() {
 }
 
 PLUGIN_VER="$(extract_version "$PLUGIN")"
-MARKET_VER="$(extract_version "$MARKET")"
 
 [ -n "$PLUGIN_VER" ] || { echo "error: could not parse version from $PLUGIN" >&2; exit 1; }
-[ -n "$MARKET_VER" ] || { echo "error: could not parse version from $MARKET" >&2; exit 1; }
-
-if [ "$PLUGIN_VER" != "$MARKET_VER" ]; then
-    echo "error: versions out of sync — plugin.json=${PLUGIN_VER}, marketplace.json=${MARKET_VER}" >&2
-    echo "       fix the mismatch manually, then re-run." >&2
-    exit 1
-fi
 
 CURRENT="$PLUGIN_VER"
 MAJOR="${CURRENT%%.*}"
@@ -108,14 +96,12 @@ if [ "$BUMP_ONLY" -eq 0 ] && git rev-parse "${TAG}" >/dev/null 2>&1; then
 fi
 
 # Portable in-place edit: -i.bak + rm works on both GNU and BSD sed.
-for f in "$PLUGIN" "$MARKET"; do
-    sed -i.bak "s/\"version\"[[:space:]]*:[[:space:]]*\"${CURRENT}\"/\"version\": \"${NEW}\"/" "$f"
-    rm -f "${f}.bak"
-done
+sed -i.bak "s/\"version\"[[:space:]]*:[[:space:]]*\"${CURRENT}\"/\"version\": \"${NEW}\"/" "$PLUGIN"
+rm -f "${PLUGIN}.bak"
 
 if command -v python3 >/dev/null 2>&1; then
     python3 -c "import json,sys
-[json.load(open(f)) for f in sys.argv[1:]]" "$PLUGIN" "$MARKET" || {
+json.load(open(sys.argv[1]))" "$PLUGIN" || {
         echo "error: post-bump JSON failed to parse — restore via 'git checkout .claude-plugin/'" >&2
         exit 1
     }
@@ -125,7 +111,7 @@ echo "bumped ${CURRENT} -> ${NEW}"
 
 if [ "$BUMP_ONLY" -eq 1 ]; then
     cat <<EOF
-manifests updated. To finish the release manually:
+manifest updated. To finish the release manually:
   git commit -am "chore: release ${TAG}"
   git tag ${TAG}
   git push --follow-tags
@@ -137,7 +123,7 @@ fi
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 echo "→ commit"
-git add "$PLUGIN" "$MARKET"
+git add "$PLUGIN"
 git commit -m "chore: release ${TAG}"
 
 echo "→ tag ${TAG}"

@@ -77,10 +77,9 @@ Each EARS outcome may carry a `[test: <runner>:<target>]` citation. When present
 
 The prompt file (`specs/INTENT/I-3-onboarding/checks/error_copy_tone.md`) is seeded with the SHALL by `/spec-intent` on first cite; the user enriches its `## Success criteria` section with concrete pass conditions.
 
-`spec-check` writes three ratios back to the intent's frontmatter, forming a strength ladder:
+`spec-check` writes two ratios back to the intent's frontmatter, forming a strength ladder:
 
 - `verdict_outcomes_passed/_total` — overall passes.
-- `verdict_outcomes_passed_by_agent/_total` — passes verified by at least a subagent check or a process-runner test.
 - `verdict_outcomes_passed_by_test/_total` — passes verified by a process-runner test (strictest signal).
 
-Invariant: `_passed_by_test ≤ _passed_by_agent ≤ _passed ≤ _total`. Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM fallback. The goal is to drive `_passed_by_test/_total` toward 1.0 over time, falling back to the `agent:` runner only when a SHALL is genuinely unprogrammable.
+Invariant: `_passed_by_test ≤ _passed ≤ _total`. Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM fallback. The goal is to drive `_passed_by_test/_total` toward 1.0 over time, falling back to the `agent:` runner only when a SHALL is genuinely unprogrammable.

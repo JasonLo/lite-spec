@@ -38,14 +38,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
 ## Mode 1 — Append
 
 1. **Read the constitution.** If `specs/CONSTITUTION.md` exists, read it. Cross-check the proposed decision against every principle.
-2. **Read `specs/DECISIONS.md`.** If it doesn't exist, create it (creating `specs/` first if needed) with this header:
-
-   ```markdown
-   # Decisions Log
-
-   Append-only log of non-trivial decisions. Each entry: `- **D-N:** Decided X because Y (YYYY-MM-DD). [intent: I-N]`
-   ```
-
+2. **Read `specs/DECISIONS.md`.** If it doesn't exist, create it (creating specs/ first if needed) with the header from [DECISIONS_HEADER.template.md](DECISIONS_HEADER.template.md) (sibling of this SKILL.md).
 3. **Pick the next ID.** Scan existing `D-N` IDs (tagged or untagged) and use the next sequential number (`max + 1`), no zero-padding — same shape as `I-N` intents and `P-N` principles.
 4. **Resolve the `[intent: I-N]` tag** using the rule above.
 5. **Deduplicate.** Grep `specs/DECISIONS.md` for keywords from the proposed decision. The grep MUST match both tagged and legacy untagged entries — do not assume the tag suffix exists on read. **Exclude struck-through entries** (lines starting with `- ~~`): those have already been reversed via supersession and are NOT candidates for duplicate-of-current. If a non-struck near-duplicate exists, surface it and ask the user whether to (a) skip — the choice is already recorded, (b) supersede the prior entry (switch to supersede mode), or (c) append anyway because the new entry is meaningfully different.

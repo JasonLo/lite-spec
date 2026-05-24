@@ -13,11 +13,11 @@ You are the drift-check skill for **lite-spec**. You read every open intent unde
 - **Constitution drift** — a feature violates a constitutional principle (e.g., principle added after feature shipped).
 - **Cross-reference drift** — a `[intent: I-N]` tag in `specs/DECISIONS.md` points at an intent folder that no longer exists.
 
-You also **derive each intent's `status`** from its outcome pass-counts and write the derived value back to the intent's frontmatter (`status`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_agent`, `verdict_outcomes_passed_by_test`, `verdict_outcomes_total`, `verdict_checked_at`, and `closed`). The user never hand-writes `status: complete`.
+You also **derive each intent's `status`** from its outcome pass-counts and write the derived value back to the intent's frontmatter (`status`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_test`, `verdict_outcomes_total`, `verdict_checked_at`, and `closed`). The user never hand-writes `status: complete`.
 
 Verification is mechanical: each SHALL is checked individually, not vibe-checked as a whole. When an outcome carries a `[test: <runner>:<target>]` citation, `spec-check` executes it. Two flavors of runner exist:
 
-- **Process runners** (`pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, `shell`) — `spec-check` invokes them via Bash; exit code 0 is the only path to a test-backed `pass`.
+- **Process runners** (`pytest`, `vitest`, `jest`, `cargo`, `go`, `shell`) — `spec-check` invokes them via Bash; exit code 0 is the only path to a test-backed `pass`.
 - **Agent runner** (`agent:<path-to-prompt-file>`) — `spec-check` spawns a subagent, hands it the prompt file plus the EARS line plus scope hints, parses a structured verdict block, and reports `pass`, `fail`, or `unverifiable`. Use this only for SHALLs that genuinely can't be checked by a normal test (UX claims, doc structure, narrative consistency).
 
 Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM inline fallback. To drive a SHALL to `pass`, the user adds a citation via `/spec-intent refine`.
@@ -48,9 +48,9 @@ For each selected intent `I-N`:
 
    **No citation at all** — classify the outcome `unverifiable (no test citation)`. Emit a self-critique flag in the report: `O-N has no [test: ...] citation — re-invoke /spec-intent refine to add one (process runner, or agent:<prompt-path> for SHALLs that can't be checked programmatically).` This is the only nudge spec-check sends back toward spec-intent for citation coverage; the goal is the by-test + by-agent ratio climbing over time.
 
-   **Citation present** — validate every citation's runner against the allowed set: `pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, `shell`, `agent`. An unknown runner → classify the whole outcome `unverifiable (unknown runner: <name>)` and skip execution; do NOT silently fall back — silently downgrading would hide a typo in the citation. Then split each citation by runner family and apply the rules below.
+   **Citation present** — validate every citation's runner against the allowed set: `pytest`, `vitest`, `jest`, `cargo`, `go`, `shell`, `agent`. An unknown runner → classify the whole outcome `unverifiable (unknown runner: <name>)` and skip execution; do NOT silently fall back — silently downgrading would hide a typo in the citation. Then split each citation by runner family and apply the rules below.
 
-   **A1. Process runners** (`pytest` / `vitest` / `jest` / `cargo` / `go` / `npm` / `shell`):
+   **A1. Process runners** (`pytest` / `vitest` / `jest` / `cargo` / `go` / `shell`):
    - Reject whole-suite citations (e.g., `pytest:tests/` or `pytest:.` with no `::` or `-k` filter, `vitest:` with no args, `cargo:` with no test-name, `go:` with no `-run` pattern). Classify the outcome `unverifiable (whole-suite citation — one SHALL → one test)`. The same rule lives in `spec-intent`; this enforces it at check time.
    - **Pre-flight: greenfield check.** Before invoking the runner, resolve the target file portion of the citation (e.g., `tests/x.py` from `pytest:tests/x.py::test_y`). If the file does not exist on disk, classify the outcome `fail (test not found at <path>)` and skip execution. This is the pre-implementation signal — a missing cited test is evidence the work hasn't been done, distinct from a runner that crashed.
    - Otherwise, execute each citation via Bash, mapping to the command in the runner table (see `spec-intent`'s "Test citations" section). Use a 60-second per-test timeout by default; if the citation needs longer, the user must move it to a `shell:` citation that handles its own timeout. Capture exit code, elapsed time, and the last ~20 lines of stdout+stderr.
@@ -78,9 +78,8 @@ For each selected intent `I-N`:
 6. **Compute the verdict counts** (unverifiable and skipped are excluded from the total, per design):
    - `verdict_outcomes_total = count(O-N classified as pass or fail)`. Unverifiable, skipped, and intent-ahead are excluded — the total reflects only what was actually graded.
    - `verdict_outcomes_passed = count(O-N classified as pass)` (any source).
-   - `verdict_outcomes_passed_by_agent = count(O-N classified as pass where the strength-source label is test OR agent)`. Because every test-backed pass is also agent-or-better, this equals `verdict_outcomes_passed_by_test + count(pass (agent))`. With Path B removed, every `pass` is either test-backed or agent-backed, so `verdict_outcomes_passed_by_agent == verdict_outcomes_passed` always holds in v1 — the field exists as a forward-looking handle for future weaker tiers and as the explicit middle rung of the documented ladder.
    - `verdict_outcomes_passed_by_test = count(O-N classified as pass where the strength-source label is test)`. Strictest signal.
-   - **Invariant:** `0 ≤ verdict_outcomes_passed_by_test ≤ verdict_outcomes_passed_by_agent ≤ verdict_outcomes_passed ≤ verdict_outcomes_total`. If the count math ever violates this invariant, abort the writeback for this intent and surface a `BUG:` line in the report — never persist a broken ladder.
+   - **Invariant:** `0 ≤ verdict_outcomes_passed_by_test ≤ verdict_outcomes_passed ≤ verdict_outcomes_total`. If the count math ever violates this invariant, abort the writeback for this intent and surface a `BUG:` line in the report — never persist a broken ladder.
    - `verdict_checked_at = <now, ISO 8601 with Z>`.
 7. **Derive `status`:**
    - `complete` iff `verdict_outcomes_total > 0` AND `verdict_outcomes_passed == verdict_outcomes_total`
@@ -93,7 +92,7 @@ For each selected intent `I-N`:
    - Flipping to `complete` (from anything else this run): set `closed` to today's ISO date (date, not full timestamp — humans read this).
    - Flipping away from `complete` (regression): set `closed: null`.
    - No flip: leave `closed` as-is.
-9. **Write the updated frontmatter back to `intent.md`.** Frontmatter only — never touch the body (everything after the closing `---` is read-only here). Preserve key order, YAML formatting, and **any unrecognized keys** — other skills or future versions may add fields not enumerated in step 7's contract; leave them untouched rather than silently dropping them. **Skip the writeback entirely if no field would change.** Specifically: if the freshly-derived `status`, `closed`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_agent`, `verdict_outcomes_passed_by_test`, and `verdict_outcomes_total` all match the existing values, do NOT update `verdict_checked_at` and do NOT rewrite the file. This prevents constant git churn from `/spec-check` runs that found no semantic change.
+9. **Write the updated frontmatter back to `intent.md`.** Frontmatter only — never touch the body (everything after the closing `---` is read-only here). Preserve key order, YAML formatting, and **any unrecognized keys** — other skills or future versions may add fields not enumerated in step 7's contract; leave them untouched rather than silently dropping them. **Skip the writeback entirely if no field would change.** Specifically: if the freshly-derived `status`, `closed`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_test`, and `verdict_outcomes_total` all match the existing values, do NOT update `verdict_checked_at` and do NOT rewrite the file. This prevents constant git churn from `/spec-check` runs that found no semantic change.
 
 ## Constitution-drift section
 
@@ -121,7 +120,7 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 ```markdown
 # spec-check report — YYYY-MM-DD
 
-## I-1: <title>  [status: in_progress, 3/5 outcomes passing, 1/5 by test, 2/5 by agent]
+## I-1: <title>  [status: in_progress, 3/5 outcomes passing, 1/5 by test]
 
 ### Code drift
 - [x] O-1: <EARS text> — pass (test). `pytest tests/test_foo.py::test_bar` exit 0 in 0.42s.
@@ -142,7 +141,7 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 ### Intent drift
 - O-2 — intent ahead. intent.md updated 2026-05-22; relevant code last touched 2026-04-30.
 
-## I-2: <title>  [status: complete, 5/5 outcomes passing, 5/5 by test, 5/5 by agent]
+## I-2: <title>  [status: complete, 5/5 outcomes passing, 5/5 by test]
 
 ### Code drift
 - [x] O-1: ... — pass (test). ...
@@ -158,7 +157,7 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 
 ## Summary
 Intents checked: 2. Status changes this run: I-2 in_progress → complete (closed 2026-05-23).
-Across all intents: <N pass> (<X by test, Y by agent>), <F fail>, <U unverifiable>, <D intent-ahead>, <R dangling references>.
+Across all intents: <N pass> (<X by test>), <F fail>, <U unverifiable>, <D intent-ahead>, <R dangling references>.
 Test-citation coverage: <P>/<T> outcomes have a [test: ...] marker (<pct>%).
 Agent-runner usage: <A>/<T> outcomes cite agent: (<pct>%).
 
@@ -167,7 +166,7 @@ Next: /spec-intent refine I-1
 
 The `Next:` line is **conditional** and follows the Handoff convention documented in `spec-init`. Emit it **only** when at least one outcome in the run was classified `unverifiable` for a reason that `/spec-intent refine` can fix (missing citation, vague EARS, unknown runner, whole-suite citation, constitution-forbidden runner, agent prompt empty, agent prompt path outside repo, malformed agent citation, agent reply malformed, agent invocation error). Pick the lowest-numbered affected `I-N` **from the intents in this run's scope** — if invoked with `--intent I-K`, the affected intent is always `I-K` (it is the only intent in scope), regardless of unverifiable outcomes that may exist in other intents from prior runs. **Do NOT** emit `Next:` for `unverifiable (agent skipped)`, `unverifiable (--no-tests)`, `fail` outcomes, `intent-ahead` drift, constitution-principle failures, or cross-reference (dangling-tag) findings — the first two are user-opted run-mode artifacts (the user passed the flag), and the rest resolve in code, via `/spec-constitution amend`, or via manual DECISIONS.md / intent-folder repair — `spec-check` can't tell which; the user's judgment owns the next move. When the run is clean (zero fail, zero unverifiable), omit `Next:` entirely — silence is the terminal signal.
 
-The bracketed status header per intent shows the **newly derived** status, the overall verdict ratio (`_passed`/`_total`), the test-backed ratio (`_passed_by_test`/`_total`), and the agent-or-better ratio (`_passed_by_agent`/`_total`). The test-backed ratio is the strongest signal and the one to push toward 100%; the by-agent ratio is the intermediate tier — strictly stronger than overall, strictly weaker than by-test.
+The bracketed status header per intent shows the **newly derived** status, the overall verdict ratio (`_passed`/`_total`), and the test-backed ratio (`_passed_by_test`/`_total`). The test-backed ratio is the strongest signal and the one to push toward 100%.
 
 Each outcome line MUST mark its verdict source explicitly: `pass (test)`, `pass (agent)`, `fail (test)`, `fail (agent)`, `unverifiable (no test citation)`, `unverifiable (agent skipped)`, `unverifiable (--no-tests)`, or `unverifiable (<other reason>)`. A reader scanning the report should never wonder whether a verdict came from a deterministic test, from an LLM-graded check, or from no check at all.
 
@@ -197,55 +196,7 @@ The subagent is restricted to a read-only tool set via the invocation prompt: **
 
 For each agent citation, spec-check builds the subagent's prompt by concatenating these segments in order:
 
-```
-You are an EARS verification subagent for the lite-spec spec-check skill. Your job is to verify whether the implementation satisfies one specific EARS SHALL statement, using ONLY the criteria in the check prompt below. Return a structured verdict.
-
-## EARS statement under test
-Intent: I-<N> — <intent title>
-Outcome ID: O-<K>
-Statement (verbatim from intent.md):
-<EARS line, including any sub-bullets that are not test citations>
-
-## Scope hints
-Repo root: <cwd>
-Code surface spec-check searched for this intent (you may inspect any of these):
-- <path-1>
-- <path-2>
-- ...
-(User-provided scope hint, if any: "<free-text hint>")
-
-## Check prompt (verbatim from <prompt-file-path>)
----
-<prompt file contents>
----
-
-## Your tools
-- Read: read any file under the repo root.
-- Grep: search across the repo.
-- Glob: list files by pattern.
-- WebFetch: fetch external resources, but ONLY if the check prompt explicitly requires it.
-You MUST NOT execute Bash, edit files, or spawn further subagents. Use Read/Grep/Glob to gather evidence.
-
-## What you must return
-Emit, as the LAST block of your reply, a fenced block tagged `spec-check-verdict` containing valid JSON with this exact schema:
-
-​```spec-check-verdict
-{
-  "verdict": "pass" | "fail" | "unverifiable",
-  "reason": "<one sentence, max ~25 words, no newlines>",
-  "cited": ["<file>:<line>", "<file>:<line>", "<file>:<line>"]
-}
-​```
-
-Rules:
-- "verdict" MUST be exactly one of the three strings.
-- "reason" MUST be a single non-empty line. If you cannot articulate a reason in one line, the verdict is "unverifiable".
-- "cited" MUST be an array of 1–3 strings, each in "<file>:<line>" form, each pointing inside the repo. On "unverifiable", "cited" MAY be an empty array.
-- Do NOT emit any text after the fenced block.
-- Do NOT alter the schema, add fields, or wrap the block in additional formatting.
-
-Reason briefly before the verdict block if you want — you have one shot, no retries. The fenced block is parsed by spec-check; everything before it is discarded.
-```
+Read [`AGENT_PROMPT.template.md`](AGENT_PROMPT.template.md) (sibling of this `SKILL.md`) for the prompt body. Substitutions: `<N>`, `<intent title>`, `<K>`, `<EARS line>`, `<cwd>`, `<path-1>`, `<free-text hint>`, `<prompt-file-path>`, `<prompt file contents>` are filled in by spec-check at invocation time. Keep the structure verbatim so the verdict parser below can find the `spec-check-verdict` fenced block.
 
 ### Verdict parser
 
@@ -286,7 +237,6 @@ A malformed reply is **never retried** and is **never treated as `fail`** — a 
 - **`--intent I-N` does not exist** — refuse, list existing IDs and statuses.
 - **Malformed YAML frontmatter or missing `---` delimiters** — skip that intent in the multi-intent loop with NO writeback, note the parse error in the report, and suggest `/spec-intent refine` (or manual repair). Never partial-write a file whose frontmatter couldn't be parsed.
 - **Legacy intent.md without a `status:` field** (e.g., a hand-created or pre-refactor file) — treat as if `status: draft`, run the full check, and produce a normal writeback (which will add the missing field). Do NOT crash. Other unrecognized legacy keys are preserved verbatim per step 9.
-- **Legacy intent.md without `verdict_outcomes_passed_by_agent`** — treat the missing field as if it were `null`. spec-check adds it on the first run that flips the file (subject to the no-op short-circuit in step 9).
 - **No code yet (greenfield)** — every cited `O-N` becomes `fail`. For process-runner outcomes the reason is `test not found at <path>`; for agent outcomes the reason is `agent prompt not found at <path>`. Outcomes with no citation are `unverifiable (no test citation)`, not `fail` — Path B is gone, so the absence of any citation can't produce a verdict at all. Status stays `draft`. That's a valid pre-implementation snapshot, not an error — the test paths and prompt paths in the citations double as a to-do list for the implementation.
 - **Agent prompt file missing** — classify `fail (agent prompt not found at <path>)`. Greenfield signal, parallel to "test not found".
 - **Agent prompt file empty** (zero bytes or whitespace-only) — classify `unverifiable (agent prompt empty at <path>)`. An empty prompt would force the subagent to invent the check, which would silently degrade to vibe-grading. Refuse it.
@@ -307,11 +257,6 @@ A malformed reply is **never retried** and is **never treated as `fail`** — a 
 - NEVER widen scope beyond what the user asked for (free-text scope hint).
 - NEVER auto-flip a `superseded` intent's status — that field is set by `/spec-intent supersede` and is terminal.
 - NEVER silently fall back from one runner to another. If a citation can't be parsed, can't be executed, or names a forbidden runner, classify the outcome `unverifiable` with the precise reason — do NOT pretend a different runner was the plan.
-- NEVER classify a test-backed outcome `pass` when the cited test wasn't actually executed. Exit code 0 from an actually-run process is the only path to a test-backed pass.
-- NEVER classify a missing test file as `pass` or as `unverifiable`. A cited test that doesn't exist is `fail (test not found at <path>)` — that's the greenfield signal users rely on to drive implementation.
-- NEVER classify a missing agent prompt file as `pass` or as `unverifiable`. A cited prompt that doesn't exist is `fail (agent prompt not found at <path>)` — same greenfield contract as process-runner tests.
 - NEVER inline an agent prompt in the report, in `intent.md`, or anywhere outside the prompt file itself. Agent prompts live in their own files; citations carry only the path.
 - NEVER persist the subagent's reply to disk. The `reason` and `cited` lines are surfaced in the stdout report; nothing is written to a log file or a per-intent ledger.
-- NEVER retry a malformed or timed-out agent reply. Exit verdict (or absence of one) is authoritative; one shot per check.
-- NEVER cache agent results across runs. Every `/spec-check` invocation re-spawns every agent citation in scope. A cache would silently mask drift.
 - NEVER retry a failing test to chase flakiness. Exit codes are authoritative; flakiness is a user-fixable bug.

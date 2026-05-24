@@ -10,14 +10,6 @@
       "name": "lite-spec",
       "source": "./",
       "description": "The spec-* skill family: spec-init, spec-constitution, spec-intent, spec-decisions, spec-check.",
-      "version": "0.1.1",
-      "author": {
-        "name": "Jason Lo"
-      },
-      "homepage": "https://github.com/JasonLo/lite-spec",
-      "repository": "https://github.com/JasonLo/lite-spec",
-      "license": "MIT",
-      "keywords": ["spec", "workflow", "ears", "intent", "constitution"],
       "category": "workflow"
     }
   ]
