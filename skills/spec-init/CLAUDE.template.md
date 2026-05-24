@@ -14,7 +14,7 @@ Before generating output that touches design, architecture, scope, or behavior, 
 
 - **`specs/CONSTITUTION.md`** — non-negotiable principles. Every change to principles MUST go through `spec-constitution`; never edit silently.
 - **`specs/INTENT/`** — one folder per intent (`I-N-<slug>/intent.md`), with experiments nested inside. Open intents have `status: draft` or `in_progress`; finished ones have `status: complete` or `superseded`. Outcomes use EARS (`WHEN <trigger> THE SYSTEM SHALL <response>`). Load only the intents whose scope intersects your task. Create/refine/supersede via `spec-intent`; `spec-check` derives `status` from outcome pass-counts.
-- **`specs/DECISIONS.md`** — append-only architectural choices. New entries carry an `[intent: I-N]` tag. Consult before re-litigating a settled question; supersede via `spec-decisions` rather than editing.
+- **`specs/DECISIONS.md`** — append-only architectural choices. New entries carry an `[intent: I-N]` tag. Consult before re-litigating a settled question; supersede via `spec-decisions` rather than editing. **When reading to determine what is currently true, skip struck-through entries (`- ~~...~~`) — they have been reversed. Their predecessor tag `[superseded-by: D-N, date]` points forward to the active head, and the active entry carries `[supersedes: D-N]` back-reference.** Read the full chain only when auditing history.
 
 ## Spec file ownership
 
