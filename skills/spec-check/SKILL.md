@@ -1,16 +1,17 @@
 ---
 name: spec-check
-description: Verify code against the open intents under specs/INTENT/ and specs/CONSTITUTION.md, reporting three kinds of drift — code drift, intent drift, constitution drift — with each finding pinned to a specific EARS SHALL statement or principle. Derives each intent's `status` from outcome pass-counts and writes it back to the intent.md frontmatter. Use when the user wants to check that the implementation still matches the spec, after editing any intent.md, after amending the constitution, or as a pre-PR audit. Triggers on "check for drift", "verify against intent", "does the code match the spec", "audit against constitution", "spec-check", "/spec-check".
+description: Verify code against the open intents under specs/INTENT/ and specs/CONSTITUTION.md, reporting four kinds of drift — code drift, intent drift, constitution drift, cross-reference drift — with each finding pinned to a specific EARS SHALL statement, principle, or dangling reference. Derives each intent's `status` from outcome pass-counts and writes it back to the intent.md frontmatter. Use when the user wants to check that the implementation still matches the spec, after editing any intent.md, after amending the constitution, or as a pre-PR audit. Triggers on "check for drift", "verify against intent", "does the code match the spec", "audit against constitution", "spec-check", "/spec-check".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 ---
 
 # spec-check
 
-You are the drift-check skill for **lite-spec**. You read every open intent under `specs/INTENT/`, the constitution at `specs/CONSTITUTION.md`, and the relevant code, then produce a short checklist-style report identifying three kinds of drift:
+You are the drift-check skill for **lite-spec**. You read every open intent under `specs/INTENT/`, the constitution at `specs/CONSTITUTION.md`, and the relevant code, then produce a short checklist-style report identifying four kinds of drift:
 
 - **Code drift** — implementation no longer satisfies one or more EARS SHALL statements.
 - **Intent drift** — an `intent.md` was updated but code hasn't caught up.
 - **Constitution drift** — a feature violates a constitutional principle (e.g., principle added after feature shipped).
+- **Cross-reference drift** — a `[intent: I-N]` tag in `specs/DECISIONS.md` points at an intent folder that no longer exists.
 
 You also **derive each intent's `status`** from its outcome pass-counts and write the derived value back to the intent's frontmatter (`status`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_agent`, `verdict_outcomes_passed_by_test`, `verdict_outcomes_total`, `verdict_checked_at`, and `closed`). The user never hand-writes `status: complete`.
 
@@ -98,6 +99,21 @@ For each selected intent `I-N`:
 
 Run **once per spec-check invocation** (not per intent). For each principle, ask: does any part of the current code or any current EARS outcome (across all checked intents) violate this principle? Grep for the principle's keywords (e.g., a "static typing" principle ⇒ look for untyped surfaces). Classify each principle as `pass`, `fail`, or `not applicable to this scope`.
 
+## Cross-reference-drift section
+
+Run **once per spec-check invocation** (not per intent). Validate that every `[intent: I-N]` tag in `specs/DECISIONS.md` resolves to a real intent folder under `specs/INTENT/I-N-*/`. This is the cross-reference analogue of the constitution-drift section — once-per-run, scope-wide, not pinned to any single intent.
+
+Procedure:
+
+1. If `specs/DECISIONS.md` does not exist, skip the section entirely and note the omission in the report (same shape as the constitution-omission note).
+2. Grep `specs/DECISIONS.md` with the pattern `\[intent: I-[0-9]+\]`. Collect all matches across the file, **including occurrences inside struck-through entries** (lines starting with `- ~~`). A struck entry whose tag has gone dangling is still drift — the audit trail no longer resolves.
+3. For each **unique** `I-N` referenced, glob `specs/INTENT/I-N-*/`. Zero matches → `fail (dangling reference)`. One or more matches → `pass`, regardless of the referenced intent's status (a `superseded` intent whose folder still exists is a valid resolution — the decision was logged when the intent was live, and the supersession chain is the audit trail).
+4. For each finding, cite the **decision IDs** that carry the broken tag (e.g., `D-3, D-12`) — the actionable line is the decision, not the absent intent. Use Grep with line context to extract the `D-N` ID from each matching line.
+
+Legacy untagged decision lines (pre-tag-rule entries that `spec-decisions` documents as valid on read) have no tag to validate and are naturally skipped.
+
+Cross-reference findings do NOT block any intent's status flip — each intent's verdict is derived from its own outcomes, not from what other files cite. They DO appear in the summary count and contribute to the overall report. Cross-reference drift is also NOT a trigger for the conditional `Next:` line — there is no `spec-` skill that cleanly remediates a dangling tag (DECISIONS.md is append-only by design), so the user's judgment owns the next move (restore the missing intent, or supersede the broken decision).
+
 ## Report format
 
 Print one combined report to stdout. Do NOT write the report to a file — drift reports are ephemeral and tied to a specific moment in time.
@@ -136,16 +152,20 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 - [x] P-9 (EARS notation) — pass.
 - [ ] P-14 (static typing) — fail. `src/foo.ts` uses `any` at line 42.
 
+## Cross-reference drift
+- [x] I-1 — pass. Referenced by D-3, D-7.
+- [ ] I-99 — fail (dangling reference). Referenced by D-12. No matching folder under specs/INTENT/I-99-*.
+
 ## Summary
 Intents checked: 2. Status changes this run: I-2 in_progress → complete (closed 2026-05-23).
-Across all intents: <N pass> (<X by test, Y by agent>), <F fail>, <U unverifiable>, <D intent-ahead>.
+Across all intents: <N pass> (<X by test, Y by agent>), <F fail>, <U unverifiable>, <D intent-ahead>, <R dangling references>.
 Test-citation coverage: <P>/<T> outcomes have a [test: ...] marker (<pct>%).
 Agent-runner usage: <A>/<T> outcomes cite agent: (<pct>%).
 
 Next: /spec-intent refine I-1
 ```
 
-The `Next:` line is **conditional** and follows the Handoff convention documented in `spec-init`. Emit it **only** when at least one outcome in the run was classified `unverifiable` for a reason that `/spec-intent refine` can fix (missing citation, vague EARS, unknown runner, whole-suite citation, constitution-forbidden runner, agent prompt empty, agent prompt path outside repo, malformed agent citation, agent reply malformed, agent invocation error). Pick the lowest-numbered affected `I-N` **from the intents in this run's scope** — if invoked with `--intent I-K`, the affected intent is always `I-K` (it is the only intent in scope), regardless of unverifiable outcomes that may exist in other intents from prior runs. **Do NOT** emit `Next:` for `unverifiable (agent skipped)`, `unverifiable (--no-tests)`, `fail` outcomes, `intent-ahead` drift, or constitution-principle failures — the first two are user-opted run-mode artifacts (the user passed the flag), the rest resolve in code or via `/spec-constitution amend` and `spec-check` can't tell which; the user's judgment owns the next move. When the run is clean (zero fail, zero unverifiable), omit `Next:` entirely — silence is the terminal signal.
+The `Next:` line is **conditional** and follows the Handoff convention documented in `spec-init`. Emit it **only** when at least one outcome in the run was classified `unverifiable` for a reason that `/spec-intent refine` can fix (missing citation, vague EARS, unknown runner, whole-suite citation, constitution-forbidden runner, agent prompt empty, agent prompt path outside repo, malformed agent citation, agent reply malformed, agent invocation error). Pick the lowest-numbered affected `I-N` **from the intents in this run's scope** — if invoked with `--intent I-K`, the affected intent is always `I-K` (it is the only intent in scope), regardless of unverifiable outcomes that may exist in other intents from prior runs. **Do NOT** emit `Next:` for `unverifiable (agent skipped)`, `unverifiable (--no-tests)`, `fail` outcomes, `intent-ahead` drift, constitution-principle failures, or cross-reference (dangling-tag) findings — the first two are user-opted run-mode artifacts (the user passed the flag), and the rest resolve in code, via `/spec-constitution amend`, or via manual DECISIONS.md / intent-folder repair — `spec-check` can't tell which; the user's judgment owns the next move. When the run is clean (zero fail, zero unverifiable), omit `Next:` entirely — silence is the terminal signal.
 
 The bracketed status header per intent shows the **newly derived** status, the overall verdict ratio (`_passed`/`_total`), the test-backed ratio (`_passed_by_test`/`_total`), and the agent-or-better ratio (`_passed_by_agent`/`_total`). The test-backed ratio is the strongest signal and the one to push toward 100%; the by-agent ratio is the intermediate tier — strictly stronger than overall, strictly weaker than by-test.
 
@@ -260,6 +280,8 @@ A malformed reply is **never retried** and is **never treated as `fail`** — a 
 
 - **No `specs/INTENT/` or empty directory** — refuse to run and tell the user to invoke `/spec-intent new` first.
 - **No `specs/CONSTITUTION.md`** — proceed without the constitution-drift section, and note the omission in the report.
+- **No `specs/DECISIONS.md`** — proceed without the cross-reference-drift section, and note the omission in the report. Same shape as the missing-constitution case.
+- **`specs/DECISIONS.md` exists but contains no `[intent: I-N]` tags** — emit the cross-reference-drift section with zero findings (e.g., `_(no tagged decisions yet)_`). This is the legitimate state of a repo whose `DECISIONS.md` predates the tag rule or has only legacy untagged entries; it is not an error.
 - **Intent has no `## Outcome` section or no EARS statements** — skip it in the multi-intent loop with NO frontmatter writeback (the intent's frontmatter, including `verdict_checked_at`, is left untouched). Continue with the other intents and name the skipped one in the report with a self-critique flag suggesting `/spec-intent refine`.
 - **`--intent I-N` does not exist** — refuse, list existing IDs and statuses.
 - **Malformed YAML frontmatter or missing `---` delimiters** — skip that intent in the multi-intent loop with NO writeback, note the parse error in the report, and suggest `/spec-intent refine` (or manual repair). Never partial-write a file whose frontmatter couldn't be parsed.
@@ -279,6 +301,7 @@ A malformed reply is **never retried** and is **never treated as `fail`** — a 
 
 - NEVER edit body content of `intent.md` — frontmatter writeback only.
 - NEVER edit code or the constitution.
+- NEVER edit `specs/DECISIONS.md`. Cross-reference drift is reported, never auto-repaired — DECISIONS.md is append-only, and rewriting a dangling tag in place would erase the audit trail.
 - NEVER report drift without a specific citation (file:line, commit SHA, runner+target+exit-code, or "searched X, found nothing").
 - NEVER summarize multiple SHALLs into a single overall pass/fail — every EARS statement gets its own line.
 - NEVER widen scope beyond what the user asked for (free-text scope hint).
