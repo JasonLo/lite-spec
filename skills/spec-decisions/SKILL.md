@@ -1,6 +1,6 @@
 ---
 name: spec-decisions
-description: Append a one-line decision entry to specs/DECISIONS.md, or supersede an existing one. New entries carry an `[intent: I-N]` tag derived from the open intent. Use when the user has made a non-trivial choice during development (architecture, library, approach, scope cut) and wants it captured durably. Triggers on "log a decision", "record this choice", "add to DECISIONS.md", "we decided X", "supersede decision", "/spec-decisions".
+description: Append a one-line decision entry to specs/DECISIONS.md, or supersede an existing one. Use when the user has made a non-trivial choice during development (architecture, library, approach, scope cut) and wants it captured durably. Triggers on "log a decision", "record this choice", "add to DECISIONS.md", "we decided X", "supersede decision", "/spec-decisions".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

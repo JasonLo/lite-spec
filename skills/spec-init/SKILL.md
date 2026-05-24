@@ -1,6 +1,6 @@
 ---
 name: spec-init
-description: Initialize a repo to use the lite-spec workflow — create the specs/ scaffold, wire CLAUDE.md with progressive-disclosure pointers to CONSTITUTION/INTENT/DECISIONS, and stage next-step guidance. Use when bootstrapping a new project, adding lite-spec to an existing repo, or repairing a broken or partial setup. Triggers on "set up lite-spec", "initialize lite-spec", "bootstrap spec workflow", "add lite-spec to this repo", "wire up CLAUDE.md", "init specs", "/spec-init".
+description: Initialize a repo to use the lite-spec workflow — the specs/ tree and CLAUDE.md pointer block. Use when bootstrapping a new project, adding lite-spec to an existing repo, or repairing a broken or partial setup. Triggers on "set up lite-spec", "initialize lite-spec", "bootstrap spec workflow", "add lite-spec to this repo", "wire up CLAUDE.md", "init specs", "/spec-init".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

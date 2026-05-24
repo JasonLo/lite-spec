@@ -1,6 +1,6 @@
 ---
 name: spec-constitution
-description: Create or amend CONSTITUTION.md — the non-negotiable project principles that every other spec- skill validates against. In ratify mode, the skill first surveys the codebase to propose candidate principles drawn from observed conventions (test runner, linter, package manager, etc.) before eliciting the rest from the user. Use when the user wants to set project principles, define architectural constraints, lock in testing or code-quality standards, surface principles from existing project setup, or amend an existing constitution. Triggers on "set up constitution", "create CONSTITUTION.md", "amend principle", "project principles", "lock in standards", "what are the rules for this project", "survey codebase principles", "infer principles from project setup", "/spec-constitution".
+description: Create or amend specs/CONSTITUTION.md — the non-negotiable project principles every other spec- skill validates against. Use when the user wants to set project principles, define architectural constraints, lock in testing or code-quality standards, surface principles from existing project setup, or amend an existing constitution. Triggers on "set up constitution", "create CONSTITUTION.md", "amend principle", "project principles", "lock in standards", "what are the rules for this project", "survey codebase principles", "infer principles from project setup", "/spec-constitution".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: spec-intent
-description: Draft, refine, or supersede an intent under specs/INTENT/I-N-<slug>/intent.md — a one-page doc with problem, outcome (in EARS notation), non-goals, constraints, and an append-only change log, plus frontmatter status managed by spec-check. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, wants to refine an existing intent, or wants to retire an intent in favor of a successor. Triggers on "write an intent doc", "spec this feature", "capture intent", "new intent", "draft intent", "refine intent", "supersede intent", "what's the intent", "/spec-intent".
+description: Draft, refine, or supersede an intent under specs/INTENT/I-N-<slug>/intent.md using EARS outcomes. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, wants to refine an existing intent, or wants to retire an intent in favor of a successor. Triggers on "write an intent doc", "spec this feature", "capture intent", "new intent", "draft intent", "refine intent", "supersede intent", "what's the intent", "/spec-intent".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill
 ---
 

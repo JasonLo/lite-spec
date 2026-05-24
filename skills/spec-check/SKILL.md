@@ -1,6 +1,6 @@
 ---
 name: spec-check
-description: Verify code against the open intents under specs/INTENT/ and specs/CONSTITUTION.md, reporting four kinds of drift — code drift, intent drift, constitution drift, cross-reference drift — with each finding pinned to a specific EARS SHALL statement, principle, or dangling reference. Derives each intent's `status` from outcome pass-counts and writes it back to the intent.md frontmatter. Use when the user wants to check that the implementation still matches the spec, after editing any intent.md, after amending the constitution, or as a pre-PR audit. Triggers on "check for drift", "verify against intent", "does the code match the spec", "audit against constitution", "spec-check", "/spec-check".
+description: Verify code against the open intents under specs/INTENT/ and specs/CONSTITUTION.md and report drift. Use when the user wants to check that the implementation still matches the spec, after editing any intent.md, after amending the constitution, or as a pre-PR audit. Triggers on "check for drift", "verify against intent", "does the code match the spec", "audit against constitution", "spec-check", "/spec-check".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 ---
 
