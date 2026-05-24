@@ -1,5 +1,5 @@
 #!/bin/sh
-# lite-spec installer — copies the ls-* skills into a Claude Code skills dir.
+# lite-spec installer — copies the spec-* skills into a Claude Code skills dir.
 #
 # One-liner (prompts for location; default: per-project):
 #   curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/install.sh | sh
@@ -100,7 +100,7 @@ fi
 
 mkdir -p "$DEST"
 INSTALLED=""
-for skill in "$SRC"/ls-*; do
+for skill in "$SRC"/spec-*; do
     [ -d "$skill" ] || continue
     name="$(basename "$skill")"
     rm -rf "${DEST:?}/${name}"
@@ -109,7 +109,7 @@ for skill in "$SRC"/ls-*; do
 done
 
 if [ -z "$INSTALLED" ]; then
-    echo "error: no ls-* skills found in ${REPO}@${REF}" >&2
+    echo "error: no spec-* skills found in ${REPO}@${REF}" >&2
     exit 1
 fi
 
@@ -117,6 +117,6 @@ cat <<EOF
 lite-spec: installed into ${DEST}
   skills:${INSTALLED}
 
-Next: open a project in Claude Code and run /ls-init to bootstrap it.
+Next: open a project in Claude Code and run /spec-init to bootstrap it.
 Re-run this script to update.
 EOF

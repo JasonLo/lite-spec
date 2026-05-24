@@ -1,10 +1,10 @@
 ---
-name: ls-decisions
-description: Append a one-line decision entry to specs/DECISIONS.md, or supersede an existing one. New entries carry an `[intent: I-N]` tag derived from the open intent. Use when the user has made a non-trivial choice during development (architecture, library, approach, scope cut) and wants it captured durably. Triggers on "log a decision", "record this choice", "add to DECISIONS.md", "we decided X", "supersede decision", "/ls-decisions".
+name: spec-decisions
+description: Append a one-line decision entry to specs/DECISIONS.md, or supersede an existing one. New entries carry an `[intent: I-N]` tag derived from the open intent. Use when the user has made a non-trivial choice during development (architecture, library, approach, scope cut) and wants it captured durably. Triggers on "log a decision", "record this choice", "add to DECISIONS.md", "we decided X", "supersede decision", "/spec-decisions".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-# ls-decisions
+# spec-decisions
 
 You are the decisions skill for **lite-spec**. You maintain `specs/DECISIONS.md` — an append-only log of non-trivial decisions with rationale. Each new entry is a single line:
 
@@ -30,7 +30,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
 1. If `--intent I-N` is passed, use it. If no folder matches `specs/INTENT/I-N-*/`, refuse and list existing IDs.
 2. Otherwise, glob `specs/INTENT/I-*-*/intent.md` and read each frontmatter `status`. Collect those with `status` in `{draft, in_progress}` — the **open** intents.
    - Exactly one open intent ⇒ use its ID. Report the auto-fill choice in the run output.
-   - Zero open intents ⇒ refuse and tell the user to invoke `/ls-intent new` first (or pass `--intent I-N` to tag against a `complete` intent if that's genuinely what they want).
+   - Zero open intents ⇒ refuse and tell the user to invoke `/spec-intent new` first (or pass `--intent I-N` to tag against a `complete` intent if that's genuinely what they want).
    - Multiple open intents ⇒ prompt the user for `--intent I-N`. Do NOT guess.
 
 ## Mode 1 — Append
@@ -47,7 +47,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
 3. **Pick the next ID.** Scan existing `D-N` IDs (tagged or untagged) and use the next sequential number (`max + 1`), no zero-padding — same shape as `I-N` intents and `P-N` principles.
 4. **Resolve the `[intent: I-N]` tag** using the rule above.
 5. **Deduplicate.** Grep `specs/DECISIONS.md` for keywords from the proposed decision. The grep MUST match both tagged and legacy untagged entries — do not assume the tag suffix exists on read. **Exclude struck-through entries** (lines starting with `- ~~`): those have already been reversed via supersession and are NOT candidates for duplicate-of-current. If a non-struck near-duplicate exists, surface it and ask the user whether to (a) skip — the choice is already recorded, (b) supersede the prior entry (switch to supersede mode), or (c) append anyway because the new entry is meaningfully different.
-6. **Validate against the constitution.** If the decision would violate a principle, refuse and tell the user which principle is blocking. They MUST either revise the decision or invoke `/ls-constitution` to amend the principle.
+6. **Validate against the constitution.** If the decision would violate a principle, refuse and tell the user which principle is blocking. They MUST either revise the decision or invoke `/spec-constitution` to amend the principle.
 7. **Check durability.** The entry MUST still make sense 6 months later. If the "because Y" reduces to "because we wanted to" or "because it's better", push back and ask for a concrete tradeoff (what was the alternative, what made this one win). If the user genuinely can't articulate a tradeoff, the decision probably isn't durable enough to log — say so.
 8. **Aim for under 25 words** (excluding the `[intent: I-N]` suffix). A decision entry is one sentence, not a paragraph. If the rationale needs more, link to an intent or a doc rather than expanding inline.
 9. **Append** the entry to `specs/DECISIONS.md`:
@@ -56,8 +56,8 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
    - **D-N:** Decided X because Y (YYYY-MM-DD). [intent: I-N]
    ```
 
-10. **Check the `CLAUDE.md` pointer block.** Grep `CLAUDE.md` at the repo root for the marker `<!-- lite-spec:pointer-block:start -->`. If the marker is present, the pointer block is already wired; do nothing. If the marker is missing (or `CLAUDE.md` itself is missing), tell the user to run `/ls-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill — `ls-init` is the single source of truth for `CLAUDE.md`.
-11. **Report** the new ID, the entry text including the resolved tag, how the tag was chosen (flag / auto / prompt), and confirmation that the constitution check passed. End the report with `Next: /ls-check --intent I-N` if the tagged intent's `status` is `draft` or `in_progress` (a logged decision usually implies code that should be re-verified against the intent). If the tag points at a `complete` or `superseded` intent, omit the `Next:` line. Follows the Handoff convention documented in `ls-init`.
+10. **Check the `CLAUDE.md` pointer block.** Grep `CLAUDE.md` at the repo root for the marker `<!-- lite-spec:pointer-block:start -->`. If the marker is present, the pointer block is already wired; do nothing. If the marker is missing (or `CLAUDE.md` itself is missing), tell the user to run `/spec-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill — `spec-init` is the single source of truth for `CLAUDE.md`.
+11. **Report** the new ID, the entry text including the resolved tag, how the tag was chosen (flag / auto / prompt), and confirmation that the constitution check passed. End the report with `Next: /spec-check --intent I-N` if the tagged intent's `status` is `draft` or `in_progress` (a logged decision usually implies code that should be re-verified against the intent). If the tag points at a `complete` or `superseded` intent, omit the `Next:` line. Follows the Handoff convention documented in `spec-init`.
 
 ## Mode 2 — Supersede
 
@@ -74,7 +74,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
    ```
    - **D-73:** Supersedes D-42 — switched to GraphQL because <reason> (2026-05-23). [intent: I-N]
    ```
-7. **Report** both entries, how the new tag was chosen, and the constitution-check result. End the report with `Next: /ls-check --intent I-N` if the new entry's tagged intent is `draft` or `in_progress` (supersession reverses a prior choice — code almost certainly needs to follow). Otherwise omit the `Next:` line. Follows the Handoff convention documented in `ls-init`.
+7. **Report** both entries, how the new tag was chosen, and the constitution-check result. End the report with `Next: /spec-check --intent I-N` if the new entry's tagged intent is `draft` or `in_progress` (supersession reverses a prior choice — code almost certainly needs to follow). Otherwise omit the `Next:` line. Follows the Handoff convention documented in `spec-init`.
 
 ## Direct writes (without invoking this skill)
 
@@ -101,13 +101,13 @@ When in doubt — durability is unclear, the human's position is ambiguous, the 
 ## Output Contract
 
 - `specs/DECISIONS.md`, append-only.
-- `CLAUDE.md` pointer block presence verified (delegated to `ls-init`; this skill does not write `CLAUDE.md`).
+- `CLAUDE.md` pointer block presence verified (delegated to `spec-init`; this skill does not write `CLAUDE.md`).
 - A short stdout report: new ID, entry text including resolved `[intent: I-N]` tag, how the tag was chosen, constitution-check status, and (for supersede) the ID being replaced.
 
 ## What This Skill MUST NOT Do
 
 - NEVER delete or rewrite the content of a past decision line. Strikethrough + annotation only.
 - NEVER retroactively add `[intent: I-N]` tags to legacy untagged entries.
-- NEVER write to `CLAUDE.md` directly — pointer block ownership belongs to `ls-init`. If the pointer block is missing, instruct the user to run `/ls-init`.
+- NEVER write to `CLAUDE.md` directly — pointer block ownership belongs to `spec-init`. If the pointer block is missing, instruct the user to run `/spec-init`.
 - NEVER skip the constitution validation.
-- NEVER let an entry exceed ~25 words (excluding the tag). If it needs to, the user is documenting a design, not a decision — point them at `/ls-intent refine` instead.
+- NEVER let an entry exceed ~25 words (excluding the tag). If it needs to, the user is documenting a design, not a decision — point them at `/spec-intent refine` instead.

@@ -1,5 +1,5 @@
 #!/bin/sh
-# lite-spec uninstaller — removes the ls-* skills from a Claude Code skills dir.
+# lite-spec uninstaller — removes the spec-* skills from a Claude Code skills dir.
 #
 # One-liner (prompts for location; default: per-project):
 #   curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/uninstall.sh | sh
@@ -57,7 +57,7 @@ case "$MODE" in
 esac
 
 REMOVED=""
-for skill in "$DEST"/ls-*; do
+for skill in "$DEST"/spec-*; do
     [ -d "$skill" ] || continue
     name="$(basename "$skill")"
     rm -rf "$skill"
@@ -65,7 +65,7 @@ for skill in "$DEST"/ls-*; do
 done
 
 if [ -z "$REMOVED" ]; then
-    echo "lite-spec: no ls-* skills found in ${DEST}"
+    echo "lite-spec: no spec-* skills found in ${DEST}"
 else
     echo "lite-spec: removed from ${DEST}:${REMOVED}"
 fi

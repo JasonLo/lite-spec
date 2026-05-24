@@ -2,7 +2,7 @@
 
 Ratified: YYYY-MM-DD
 
-Non-negotiable project principles. Every other `ls-` skill validates its output against this file and refuses to produce violating output.
+Non-negotiable project principles. Every other `spec-` skill validates its output against this file and refuses to produce violating output.
 
 ## Scope and surface area
 
