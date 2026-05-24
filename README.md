@@ -10,9 +10,22 @@ Requires [Claude Code](https://claude.com/claude-code). Skills are modular agent
 
 ### Install the skills
 
+Pick one route. Both pull from the same repo.
+
+**Plugin marketplace** (Claude Code v2.1+) — installs into Claude Code's plugin cache, supports `/plugin update`, namespaces skills as `/lite-spec:spec-*`:
+
+```claude
+/plugin marketplace add JasonLo/lite-spec
+/plugin install lite-spec@lite-spec
+```
+
+**Curl installer** — copies skill folders into `./.claude/skills/` (per-project) or `~/.claude/skills/` (global), keeps bare skill names (`/spec-init`, `/spec-intent`, …):
+
 ```bash
 curl -LsSf https://raw.githubusercontent.com/JasonLo/lite-spec/main/scripts/install.sh | sh
 ```
+
+The two routes differ only in slash-command naming; natural-language triggers ("set up lite-spec", "check for drift", etc.) work either way. The rest of this README uses the bare names — prefix with `lite-spec:` if you installed via the plugin route.
 
 ### Bootstrap the repo
 

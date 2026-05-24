@@ -1,0 +1,12 @@
+{
+  "name": "lite-spec",
+  "description": "A toolkit of five Claude Code skills (spec-init, spec-constitution, spec-intent, spec-decisions, spec-check) for the AI-era spec workflow.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jason Lo"
+  },
+  "homepage": "https://github.com/JasonLo/lite-spec",
+  "repository": "https://github.com/JasonLo/lite-spec",
+  "license": "MIT",
+  "keywords": ["spec", "workflow", "ears", "intent", "constitution"]
+}
