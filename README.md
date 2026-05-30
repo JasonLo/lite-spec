@@ -154,7 +154,7 @@ You never typed `status: complete` — `spec-check` derived it from the outcomes
 
 Each EARS outcome may carry a `[test: <runner>:<target>]` citation. When present, `spec-check` runs the citation and uses the result — not an LLM grep — to decide pass vs. fail. Two flavors of runner exist:
 
-**Process runners** (`pytest`, `vitest`, `jest`, `cargo`, `go`, `npm`, `shell`) — invoked via Bash; exit code 0 is the only path to a test-backed pass.
+**Process runners** (`pytest`, `vitest`, `jest`, `cargo`, `go`, `shell`) — invoked via Bash; exit code 0 is the only path to a test-backed pass.
 
 ```markdown
 - **WHEN** user submits the form **THE SYSTEM SHALL** show a toast within 200ms. [test: pytest:tests/test_form.py::test_toast_latency]
