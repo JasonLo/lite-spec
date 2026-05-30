@@ -12,10 +12,15 @@ synthesised fields):
     {"type": "tool_use",   "name": "Edit"}
     {"type": "tokens",     "input": 1234, "output": 567, "cached_input": 8000}
     {"type": "wall_clock", "seconds": 87.2}
+    {"type": "cost",       "usd": 0.42}
     {"type": "exit",       "code": 0, "result_marker": "RESULT: done"}
 
 The scorer is tolerant of missing fields (e.g. no `cached_input`) — cost is
-computed from whatever was reported.
+computed from whatever was reported. If the trace carries an explicit `cost`
+event (real `claude` runs report `total_cost_usd` authoritatively), that value
+is used verbatim and the token-derived estimate is skipped; the mock carrier
+omits the `cost` event so its cost is derived from synthesised tokens via the
+budget pricing table.
 """
 from __future__ import annotations
 
@@ -82,6 +87,7 @@ def score(run_dir: pathlib.Path, pricing: dict) -> dict:
     wall = 0.0
     exit_code: int | None = None
     result_marker = False
+    reported_cost: float | None = None
     for ev in _iter_events(trace):
         t = ev.get("type")
         if t == "tokens":
@@ -94,18 +100,25 @@ def score(run_dir: pathlib.Path, pricing: dict) -> dict:
             turns = max(turns, int(ev.get("n", turns + 1)))
         elif t == "wall_clock":
             wall = max(wall, float(ev.get("seconds", 0.0)))
+        elif t == "cost":
+            reported_cost = float(ev.get("usd", 0.0))
         elif t == "exit":
             exit_code = ev.get("code")
             if ev.get("result_marker"):
                 result_marker = True
-    cost = compute_cost_usd(
-        inp,
-        out,
-        cached,
-        pricing["input_per_mtok_usd"],
-        pricing["output_per_mtok_usd"],
-        pricing["cached_input_per_mtok_usd"],
-    )
+    if reported_cost is not None:
+        # Real `claude` runs report total_cost_usd authoritatively — trust it
+        # over the lossy 3-bucket token estimate.
+        cost = reported_cost
+    else:
+        cost = compute_cost_usd(
+            inp,
+            out,
+            cached,
+            pricing["input_per_mtok_usd"],
+            pricing["output_per_mtok_usd"],
+            pricing["cached_input_per_mtok_usd"],
+        )
     return Metrics(
         input_tokens=inp,
         output_tokens=out,

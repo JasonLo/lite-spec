@@ -83,3 +83,7 @@ The prompt file (`specs/INTENT/I-3-onboarding/checks/error_copy_tone.md`) is see
 - `verdict_outcomes_passed_by_test/_total` — passes verified by a process-runner test (strictest signal).
 
 Invariant: `_passed_by_test ≤ _passed ≤ _total`. Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM fallback. The goal is to drive `_passed_by_test/_total` toward 1.0 over time, falling back to the `agent:` runner only when a SHALL is genuinely unprogrammable.
+
+## Evaluating changes to the skills
+
+`evals/` holds an A/B evaluation harness for measuring whether a change to the `spec-` skills actually improves outcomes. Given two git refs (variant A and variant B), it runs each against a fixed task set and produces a deterministic accept/reject/inconclusive verdict from four evidence streams — deterministic spec-adherence, an LLM-as-judge pairwise rubric, process/cost metrics, and a constitution hard-veto. A `--mock-carrier` mode exercises the full pipeline without API spend or Docker; the real carrier drives `claude` per variant. See [`evals/README.md`](evals/README.md) for usage.

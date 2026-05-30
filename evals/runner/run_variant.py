@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -195,12 +196,116 @@ def _mock_synth(ref: str, task: dict, run_dir: pathlib.Path) -> None:
 # ----- real carrier -----
 
 
-def _claude_print(prompt: str, cwd: pathlib.Path, out_dir: pathlib.Path) -> Tuple[int, bool]:
-    """Invoke `claude --print --output-format stream-json` and capture trace.
+def parse_stream(lines: "list[str]", out_dir: pathlib.Path, fallback_wall: float) -> Tuple[int, bool, str]:
+    """Normalize Claude Code `--output-format stream-json` lines into our trace.
 
-    Returns (exit_code, result_marker_seen).
+    Pulled out of the subprocess plumbing so it can be unit-tested against
+    captured real `claude` output. Writes `out_dir/trace.jsonl` and returns
+    (exit_code, result_marker_seen, final_text).
+
+    Authoritative metrics (tokens, turns, wall-clock, cost) come from the final
+    `result` event, which carries cumulative totals — summing per-`assistant`
+    usage would double-count. Tool calls are counted from `tool_use` content
+    blocks in `assistant` messages (NOT `user` messages, which carry the
+    matching tool_result blocks).
     """
     trace_path = out_dir / "trace.jsonl"
+    result_marker = False
+    final_text_parts: list[str] = []
+    tool_uses: list[str] = []
+    exit_code = 1
+    result_seen = False
+    tokens_ev: dict | None = None
+    cost_usd: float | None = None
+    turns: int | None = None
+    wall_seconds: float | None = None
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        t = ev.get("type")
+        if t == "assistant":
+            msg = ev.get("message", {})
+            for block in msg.get("content", []) or []:
+                bt = block.get("type")
+                if bt == "text":
+                    text = block.get("text", "")
+                    final_text_parts.append(text)
+                    if "RESULT: done" in text:
+                        result_marker = True
+                elif bt == "tool_use":
+                    tool_uses.append(block.get("name", "?"))
+        elif t == "result":
+            result_seen = True
+            usage = ev.get("usage") or {}
+            tokens_ev = {
+                "type": "tokens",
+                "input": int(usage.get("input_tokens", 0)),
+                "output": int(usage.get("output_tokens", 0)),
+                "cached_input": int(usage.get("cache_read_input_tokens", 0)),
+            }
+            if ev.get("total_cost_usd") is not None:
+                cost_usd = float(ev["total_cost_usd"])
+            if ev.get("num_turns") is not None:
+                turns = int(ev["num_turns"])
+            if ev.get("duration_ms") is not None:
+                wall_seconds = float(ev["duration_ms"]) / 1000.0
+            exit_code = 0 if (ev.get("subtype") == "success" and not ev.get("is_error")) else 1
+            final = ev.get("result")
+            if isinstance(final, str):
+                if final not in "".join(final_text_parts):
+                    final_text_parts.append(final)
+                if "RESULT: done" in final:
+                    result_marker = True
+
+    with trace_path.open("w") as f:
+        f.write(json.dumps(tokens_ev or {"type": "tokens", "input": 0, "output": 0, "cached_input": 0}) + "\n")
+        for name in tool_uses:
+            f.write(json.dumps({"type": "tool_use", "name": name}) + "\n")
+        f.write(json.dumps({"type": "turn", "n": turns if turns is not None else len(tool_uses)}) + "\n")
+        f.write(json.dumps({"type": "wall_clock", "seconds": wall_seconds if wall_seconds is not None else fallback_wall}) + "\n")
+        if cost_usd is not None:
+            f.write(json.dumps({"type": "cost", "usd": cost_usd}) + "\n")
+        f.write(json.dumps({"type": "exit", "code": exit_code if result_seen else 1, "result_marker": result_marker}) + "\n")
+
+    final_text = "".join(final_text_parts)
+    (out_dir / "final_message.txt").write_text(final_text)
+    return (exit_code if result_seen else 1), result_marker, final_text
+
+
+_DIFF_FENCE = re.compile(r"```(?:diff|patch)\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
+
+
+def extract_patch(final_text: str) -> str:
+    """Pull the unified diff out of the carrier's final message.
+
+    The prompt asks the agent to emit its code changes in a fenced ```diff```
+    block. Returns the concatenated contents of every diff/patch fence (empty
+    string if none), suitable to write as patch.diff for `git apply`.
+    """
+    blocks = [m.group(1).strip("\n") for m in _DIFF_FENCE.finditer(final_text)]
+    return ("\n".join(blocks) + "\n") if blocks else ""
+
+
+def _claude_print(prompt: str, cwd: pathlib.Path, out_dir: pathlib.Path) -> Tuple[int, bool, str]:
+    """Invoke `claude --print --output-format stream-json` and capture trace.
+
+    Returns (exit_code, result_marker_seen, final_text). `--verbose` is required
+    by `claude` whenever `--output-format stream-json` is combined with
+    `--print`. `--dangerously-skip-permissions` lets the carrier edit files
+    autonomously; the harness is meant to be launched from a normal shell, not
+    nested inside another Claude Code session.
+    """
+    if shutil.which("claude") is None:
+        raise RuntimeError(
+            "real-carrier mode needs the `claude` CLI on PATH; not found. "
+            "Install Claude Code or run with --mock-carrier."
+        )
     started = time.time()
     proc = subprocess.Popen(
         [
@@ -208,6 +313,7 @@ def _claude_print(prompt: str, cwd: pathlib.Path, out_dir: pathlib.Path) -> Tupl
             "--print",
             "--output-format",
             "stream-json",
+            "--verbose",
             "--dangerously-skip-permissions",
         ],
         cwd=cwd,
@@ -219,69 +325,12 @@ def _claude_print(prompt: str, cwd: pathlib.Path, out_dir: pathlib.Path) -> Tupl
     assert proc.stdin is not None and proc.stdout is not None
     proc.stdin.write(prompt)
     proc.stdin.close()
-    result_marker = False
-    final_text_parts: list[str] = []
-    with trace_path.open("w") as f:
-        for line in proc.stdout:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                ev = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            # Normalize Claude Code stream-json into our trace schema.
-            t = ev.get("type")
-            if t == "assistant":
-                msg = ev.get("message", {})
-                for block in msg.get("content", []) or []:
-                    if block.get("type") == "text" and "RESULT: done" in block.get("text", ""):
-                        result_marker = True
-                    if block.get("type") == "text":
-                        final_text_parts.append(block.get("text", ""))
-                usage = msg.get("usage") or {}
-                f.write(
-                    json.dumps(
-                        {
-                            "type": "tokens",
-                            "input": usage.get("input_tokens", 0),
-                            "output": usage.get("output_tokens", 0),
-                            "cached_input": usage.get("cache_read_input_tokens", 0),
-                        }
-                    )
-                    + "\n"
-                )
-            elif t == "user":
-                msg = ev.get("message", {})
-                for block in msg.get("content", []) or []:
-                    if block.get("type") == "tool_use":
-                        f.write(json.dumps({"type": "tool_use", "name": block.get("name", "?")}) + "\n")
-            elif t == "result":
-                f.write(
-                    json.dumps(
-                        {
-                            "type": "wall_clock",
-                            "seconds": time.time() - started,
-                        }
-                    )
-                    + "\n"
-                )
-                f.write(
-                    json.dumps(
-                        {
-                            "type": "exit",
-                            "code": ev.get("subtype") == "success" and 0 or 1,
-                            "result_marker": result_marker,
-                        }
-                    )
-                    + "\n"
-                )
+    lines = list(proc.stdout)
     proc.wait()
-    (out_dir / "final_message.txt").write_text("".join(final_text_parts))
-    return proc.returncode, result_marker
+    return parse_stream(lines, out_dir, fallback_wall=time.time() - started)
 
 
-def _run_real(ref: str, task: dict, run_dir: pathlib.Path) -> None:
+def _run_real(ref: str, task: dict, run_dir: pathlib.Path, skip_swe_bench: bool) -> None:
     worktree = ensure_worktree(ref)
     sandbox = run_dir / "sandbox"
     sandbox.mkdir(parents=True, exist_ok=True)
@@ -294,25 +343,37 @@ def _run_real(ref: str, task: dict, run_dir: pathlib.Path) -> None:
         .replace("{{issue_body_excerpt}}", task["issue_body_excerpt"])
         .replace("{{intent_seed_outcome}}", task["intent_seed_outcome"])
     )
-    exit_code, _ = _claude_print(prompt, sandbox, run_dir)
+    _exit_code, _marker, final_text = _claude_print(prompt, sandbox, run_dir)
     # Copy specs/ out of the sandbox.
     sandbox_specs = sandbox / "specs"
     if sandbox_specs.exists():
         if (run_dir / "specs").exists():
             shutil.rmtree(run_dir / "specs")
         shutil.copytree(sandbox_specs, run_dir / "specs")
-    # Real SWE-bench evaluation — currently stubbed.
+    # The carrier emits its code diff in a fenced ```diff``` block; persist it
+    # for the (optional) SWE-bench step and for auditing.
+    (run_dir / "patch.diff").write_text(extract_patch(final_text))
+    # Optional SWE-bench evaluation — gracefully skipped when Docker is down or
+    # --skip-swe-bench was passed. See runner/sandbox.py.
     from runner import sandbox as sb_mod  # local import for clarity
-    swe = sb_mod.run_swe_bench_test(task, run_dir / "patch.diff", sandbox)
+    swe = sb_mod.run_swe_bench_test(
+        task, run_dir / "patch.diff", sandbox, skip=skip_swe_bench
+    )
     (run_dir / "swe_bench_result.json").write_text(json.dumps(swe))
 
 
-def run(ref: str, task: dict, run_dir: pathlib.Path, mock_carrier: bool) -> None:
+def run(
+    ref: str,
+    task: dict,
+    run_dir: pathlib.Path,
+    mock_carrier: bool,
+    skip_swe_bench: bool = False,
+) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     if mock_carrier:
         _mock_synth(ref, task, run_dir)
     else:
-        _run_real(ref, task, run_dir)
+        _run_real(ref, task, run_dir, skip_swe_bench)
 
 
 def _cli() -> None:
@@ -322,9 +383,10 @@ def _cli() -> None:
     ap.add_argument("--run-dir", required=True)
     ap.add_argument("--mock-carrier", action="store_true", default=True)
     ap.add_argument("--no-mock-carrier", dest="mock_carrier", action="store_false")
+    ap.add_argument("--skip-swe-bench", action="store_true", default=False)
     args = ap.parse_args()
     task = json.loads(args.task_json)
-    run(args.ref, task, pathlib.Path(args.run_dir), args.mock_carrier)
+    run(args.ref, task, pathlib.Path(args.run_dir), args.mock_carrier, args.skip_swe_bench)
 
 
 if __name__ == "__main__":

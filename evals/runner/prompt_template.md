@@ -51,6 +51,11 @@ and what's next.
   refine` to add citations rather than papering over the gap.
 - The final patch MUST be the diff of your code changes, NOT the diff of the
   `specs/` tree. The `specs/` tree is captured separately by the harness.
+- The upstream repo may NOT be checked out in your working directory (only the
+  lite-spec skills and a `specs/` tree are guaranteed present). If the repo is
+  absent, still complete the full spec trail (steps 1–3, 5–6) and emit a
+  best-effort unified diff in step 7 describing the change you *would* make.
+  The spec artifacts — not the patch — are the primary thing under evaluation.
 
 When done, end your final message with a line of the form:
 

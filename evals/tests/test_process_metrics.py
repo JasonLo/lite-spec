@@ -21,6 +21,22 @@ def test_missing_trace_returns_zeros(tmp_path, pricing):
     assert m["cost_usd"] == 0.0
 
 
+def test_reported_cost_event_overrides_token_estimate(tmp_path, pricing):
+    import json
+    # Tokens would estimate ~0.03, but an explicit cost event must win verbatim.
+    (tmp_path / "trace.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"type": "tokens", "input": 1000, "output": 200, "cached_input": 0}),
+                json.dumps({"type": "cost", "usd": 0.4242}),
+                json.dumps({"type": "exit", "code": 0, "result_marker": True}),
+            ]
+        )
+    )
+    m = process_metrics.score(tmp_path, pricing)
+    assert m["cost_usd"] == 0.4242
+
+
 def test_cost_handles_no_cached_field(tmp_path, pricing):
     import json
     (tmp_path / "trace.jsonl").write_text(

@@ -68,8 +68,29 @@ def main() -> int:
     ap.add_argument("--budget", choices=["shoestring", "moderate", "rigorous"], default="shoestring")
     ap.add_argument("--mock-carrier", action="store_true", default=True)
     ap.add_argument("--no-mock-carrier", dest="mock_carrier", action="store_false")
+    ap.add_argument(
+        "--skip-swe-bench",
+        action="store_true",
+        default=False,
+        help="skip the SWE-bench code-pass stream (auto-skips when Docker is down)",
+    )
     ap.add_argument("--report-id", default=None, help="override report dir name")
     args = ap.parse_args()
+
+    # The SWE-bench stream needs a live Docker daemon; for real-carrier runs
+    # without one, skip it up front so the run completes on the other three
+    # streams instead of recording a Docker error per task.
+    skip_swe_bench = args.skip_swe_bench
+    if not args.mock_carrier and not skip_swe_bench:
+        from runner import sandbox as sb_mod
+
+        if not sb_mod.docker_available():
+            skip_swe_bench = True
+            print(
+                "[run_pair] Docker daemon not reachable — auto-skipping SWE-bench "
+                "stream (adherence/judge/process/veto still run).",
+                file=sys.stderr,
+            )
 
     budget = yaml.safe_load((EVALS_ROOT / "budget.yaml").read_text())
     tier = budget["tiers"][args.budget]
@@ -99,7 +120,7 @@ def main() -> int:
             ref = variants[variant_key]
             run_dir = runs_root / f"{task['task_id']}-{variant_key}"
             print(f"[run_pair] running ref={ref} task={task['task_id']} variant={variant_key} ...", flush=True)
-            run_variant.run(ref, task, run_dir, args.mock_carrier)
+            run_variant.run(ref, task, run_dir, args.mock_carrier, skip_swe_bench)
 
         a_dir = runs_root / f"{task['task_id']}-a"
         b_dir = runs_root / f"{task['task_id']}-b"
