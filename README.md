@@ -43,7 +43,7 @@ Creates `specs/` and wires the `CLAUDE.md` pointer block so future Claude sessio
 1. `/spec-decisions                # log non-trivial choices (or let Claude append directly)`
 1. `/spec-check                    # verify code still satisfies open intents + constitution`
 
-Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` plus an `experiments/` subfolder. Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
+Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
 
 ## The skills
 
@@ -51,7 +51,7 @@ Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` plus an `exp
 |---|---|---|
 | [`spec-init`](skills/spec-init/SKILL.md) | `specs/` + `specs/INTENT/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
 | [`spec-constitution`](skills/spec-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. In ratify mode, surveys the codebase first to propose candidate principles from observed conventions (test runner, linter, package manager, etc.). |
-| [`spec-intent`](skills/spec-intent/SKILL.md) | `specs/INTENT/I-N-<slug>/intent.md` | When opening, refining, or superseding an intent. Each intent is its own folder with EARS outcomes and a nested `experiments/`. Frontmatter `status` is derived by `spec-check`. |
+| [`spec-intent`](skills/spec-intent/SKILL.md) | `specs/INTENT/I-N-<slug>/intent.md` | When opening, refining, or superseding an intent. Each intent is its own folder with EARS outcomes; `experiments/` and `checks/` subfolders appear only on demand. Frontmatter `status` is derived by `spec-check`. |
 | [`spec-decisions`](skills/spec-decisions/SKILL.md) | `specs/DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale and an `[intent: I-N]` tag; supports supersession. Agent-writable. |
 | [`spec-check`](skills/spec-check/SKILL.md) | drift report (stdout) + `intent.md` frontmatter writeback | Manual or auto-invoked — after edits to any `intent.md` or `CONSTITUTION.md`, as a pre-PR audit, or on phrases like "check for drift" / "verify against spec". Iterates every open intent; writes `status`, `verdict_*`, and `closed` back to each `intent.md`. |
 

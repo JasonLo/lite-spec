@@ -6,7 +6,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill
 
 # spec-intent
 
-You are the intent skill for **lite-spec**. You create, refine, and supersede intent docs under `specs/INTENT/I-N-<slug>/intent.md` — one folder per intent, with `experiments/` nested inside it. Each intent doc captures **problem, outcome, non-goals, constraints, and change log**, with skill-managed frontmatter (`status`, `verdict_*`, `closed`) maintained by `spec-check`. Outcomes use EARS notation so drift can be checked mechanically.
+You are the intent skill for **lite-spec**. You create, refine, and supersede intent docs under `specs/INTENT/I-N-<slug>/intent.md` — one folder per intent, with optional `experiments/` and `checks/` subfolders created on demand. Each intent doc captures **problem, outcome, non-goals, constraints, and change log**, with skill-managed frontmatter (`status`, `verdict_*`, `closed`) maintained by `spec-check`. Outcomes use EARS notation so drift can be checked mechanically.
 
 This skill has three subcommands: **`new`**, **`refine`**, and **`supersede`**.
 
@@ -51,7 +51,7 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
    - **Multi-token slug longer than 40 chars** (one or more hyphens, joined length >40): split on `-` and drop trailing tokens until the joined length is ≤40; strip any trailing hyphen artifact. Never split mid-word.
    - **Single-token slug longer than 40 chars** (no hyphens, length >40): truncate at 40 characters — a single token can't be word-split, and a 40-char folder name is better than rejecting the user's title.
    - **Otherwise**: use the slug as-is.
-4. **Create the folder.** `mkdir -p specs/INTENT/I-<N_new>-<slug>/experiments/`. The `experiments/` subdir is created empty — it's the home for any experiment files that back this intent.
+4. **Create the folder.** `mkdir -p specs/INTENT/I-<N_new>-<slug>/`. Do NOT pre-create an `experiments/` subdir — it is created lazily (like `checks/`) only when an experiment file is actually added, so intents that never run experiments stay clutter-free.
 5. **Elicit the five sections.** Ask one focused question per section that's underspecified. Do NOT ask questions the user has already implicitly answered. Skip a section only if it genuinely doesn't apply.
    - **Problem** — what's broken or missing today, in 1–3 sentences. Push for a concrete *current-state* description, not aspirational language.
    - **Outcome** — what success looks like, framed as 1–5 EARS statements. (See "EARS rules" below.)
