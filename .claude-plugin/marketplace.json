@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "lite-spec",
-  "description": "Five Claude Code skills for the AI-era spec workflow",
+  "description": "Four Claude Code skills for the AI-era spec workflow",
   "owner": {
     "name": "Jason Lo"
   },
@@ -9,7 +9,7 @@
     {
       "name": "lite-spec",
       "source": "./",
-      "description": "The spec-* skill family: spec-init, spec-constitution, spec-intent, spec-decisions, spec-check.",
+      "description": "The spec-* skill family: spec-init, spec-constitution, spec-intent, spec-check.",
       "category": "workflow"
     }
   ]

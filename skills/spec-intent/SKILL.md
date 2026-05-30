@@ -40,12 +40,12 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
 
 - **Skill-managed fields** (`status`, `closed`, `verdict_*` including `verdict_outcomes_passed_by_test`) are written by `spec-check`. Hand-edits to these will be overwritten on the next run.
 - **`superseded_by`** is set only by `/spec-intent supersede`.
-- **`title`** may be changed via `/spec-intent refine`. **`id`**, **`slug`**, and **`opened`** are immutable post-creation; the folder name `I-N-<slug>/` is also immutable (renaming breaks the `superseded_by` chain and `[intent: I-N]` references in `DECISIONS.md`).
+- **`title`** may be changed via `/spec-intent refine`. **`id`**, **`slug`**, and **`opened`** are immutable post-creation; the folder name `I-N-<slug>/` is also immutable (renaming breaks the `superseded_by` chain).
 
 ## Subcommand 1 — `new "<title>"`
 
 1. **Read the constitution.** If `specs/CONSTITUTION.md` exists, read it. Keep its principles in mind for every step. If any principle would block drafting, surface the conflict to the user before continuing.
-2. **Assign the ID.** Glob `specs/INTENT/I-*-*/`. Extract the integer `N` from each folder name (strip the `I-` prefix and the trailing `-<slug>`); compute `N_new = max(N) + 1` (or `1` if no existing intents). Format as `I-<N>` with no zero-padding (`I-1`, `I-42`) — same shape as `D-N` decisions and `P-N` principles.
+2. **Assign the ID.** Glob `specs/INTENT/I-*-*/`. Extract the integer `N` from each folder name (strip the `I-` prefix and the trailing `-<slug>`); compute `N_new = max(N) + 1` (or `1` if no existing intents). Format as `I-<N>` with no zero-padding (`I-1`, `I-42`) — same shape as `P-N` principles.
 3. **Derive the slug.** Take the title, lowercase it, replace non-`[a-z0-9]` runs with single hyphens, strip leading/trailing hyphens. Then handle each edge case:
    - **Empty result** (title was all punctuation, all non-ASCII, or empty after normalization): refuse with an explanatory message and ask the user for an ASCII-sluggable title. Do NOT create the folder.
    - **Multi-token slug longer than 40 chars** (one or more hyphens, joined length >40): split on `-` and drop trailing tokens until the joined length is ≤40; strip any trailing hyphen artifact. Never split mid-word.
@@ -92,7 +92,7 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
    - If `--intent I-N` is passed, use it. If no folder matches `specs/INTENT/I-N-*/`, refuse and list the existing IDs.
    - Otherwise, glob `specs/INTENT/I-*-*/intent.md` and read each frontmatter `status`. Collect those with `status` in `{draft, in_progress}` — the **open** intents.
      - Exactly one open intent ⇒ use it; report the choice in the run output.
-     - Zero or many ⇒ prompt the user for `--intent I-N`, listing every intent ID and status (including terminal `complete` and `superseded` intents — refining a terminal intent to fix a typo or append a Change Log clarification is legal here, unlike in `spec-decisions` where new tags only auto-bind to open intents). Do NOT guess.
+     - Zero or many ⇒ prompt the user for `--intent I-N`, listing every intent ID and status (including terminal `complete` and `superseded` intents — refining a terminal intent to fix a typo or append a Change Log clarification is legal here). Do NOT guess.
 2. **Read** the intent.md and the constitution.
 3. **Ask the user what's changing** — a clarification, a new outcome, a tightened non-goal, a removed constraint, a title update. Do not guess.
 4. **Apply the change** in place to the body sections (Problem, Outcome, Non-Goals, Constraints, the `Last updated:` line, and optionally the `title:` frontmatter field). NEVER touch skill-managed frontmatter fields. NEVER delete or overwrite Change Log entries.
@@ -128,7 +128,7 @@ After an intent is written (`new`), refined (`refine`), or opened as a successor
 3. **On "yes", pass the intent to `/plan`.** Activate plan mode with `specs/INTENT/I-N-<slug>/intent.md` as the requirements input, and instruct `/plan` to **write its plan to `specs/INTENT/I-N-<slug>/plan.md`** — overriding `/plan`'s default plan-file location. From there, `/plan` runs its own workflow and owns the plan's format; `spec-intent`'s job ends.
 4. **Do NOT append a Change Log entry to `intent.md`** for the plan. The plan is not a change to the intent, and touching `intent.md` would bump its git timestamp and make `spec-check` report spurious `intent ahead` drift before any code exists. `plan.md` stands alone as a discoverable sibling.
 
-`plan.md` is **agent-writable** (like `DECISIONS.md`) and **regenerable** — `intent.md` remains the source of truth. Re-running the handoff after a `refine` simply overwrites the prior `plan.md`.
+`plan.md` is **agent-writable** and **regenerable** — `intent.md` remains the source of truth. Re-running the handoff after a `refine` simply overwrites the prior `plan.md`.
 
 ## EARS rules
 
@@ -173,8 +173,8 @@ A test citation MUST point at a single test (or a tight `-k` / `-t` / `-run` fil
 - NEVER write outcomes in non-EARS prose.
 - NEVER delete or rewrite past Change Log entries — they are append-only.
 - NEVER touch skill-managed frontmatter fields (`status`, `closed`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_test`, `verdict_outcomes_total`, `verdict_checked_at`) directly — only `spec-check` writes those. **Exception:** the `supersede` subcommand sets `status: superseded`, `superseded_by: I-<M>`, and `closed: <today>` on the predecessor (step 4 of subcommand 3). That is the one documented mutation of skill-managed fields by `spec-intent`; all other writes to these fields are forbidden.
-- NEVER hand-edit `superseded_by` outside the `supersede` subcommand. The chain `I-N → superseded_by → I-M` is the durable handle that spec-check uses to skip terminal intents and that `[intent: I-N]` decision tags rely on. Breaking it silently invalidates downstream skills.
-- NEVER rename an existing `I-N-<slug>/` folder. The folder name is the durable handle that `superseded_by` and `[intent: I-N]` references in `DECISIONS.md` rely on.
+- NEVER hand-edit `superseded_by` outside the `supersede` subcommand. The chain `I-N → superseded_by → I-M` is the durable handle that spec-check uses to skip terminal intents. Breaking it silently invalidates downstream skills.
+- NEVER rename an existing `I-N-<slug>/` folder. The folder name is the durable handle that `superseded_by` relies on.
 - NEVER finalize an intent that violates `specs/CONSTITUTION.md`. Surface the conflict instead.
 - NEVER skip the self-critique pass — even on tiny refinements, walk the five flags.
 - NEVER fabricate user answers. If a section is genuinely unknown, leave it as `TBD` with a self-critique flag rather than inventing detail.

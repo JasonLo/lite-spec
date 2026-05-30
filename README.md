@@ -2,7 +2,7 @@
 
 > **Status:** experimental — interfaces may change before v1.
 
-A toolkit of five Claude Code skills (the `spec-` family) for the AI-era spec workflow. Enough structure for a solo developer or small team to think clearly and capture decisions, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
+A toolkit of four Claude Code skills (the `spec-` family) for the AI-era spec workflow. Enough structure for a solo developer or small team to think clearly and capture intent, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
 
 ## Quickstart
 
@@ -41,7 +41,6 @@ Creates `specs/` and wires the `CLAUDE.md` pointer block so future Claude sessio
 1. `/spec-intent new "<title>"     # open a new intent: problem, EARS outcomes, non-goals`
 1. `... plan (optional) ...        # /spec-intent offers to hand the intent to /plan`
 1. `... write code ...`
-1. `/spec-decisions                # log non-trivial choices (or let Claude append directly)`
 1. `/spec-check                    # verify code still satisfies open intents + constitution`
 
 Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). After writing the intent, `/spec-intent` (in any of `new`/`refine`/`supersede`) offers to hand it to `/plan`; on yes, the resulting implementation plan is written to `specs/INTENT/I-N-<slug>/plan.md` — an agent-writable, regenerable sibling. Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
@@ -68,14 +67,13 @@ Each outcome *may* carry a `[test: ...]` citation so `/spec-check` can grade it 
 | [`spec-init`](skills/spec-init/SKILL.md) | `specs/` + `specs/INTENT/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
 | [`spec-constitution`](skills/spec-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. In ratify mode, surveys the codebase first to propose candidate principles from observed conventions (test runner, linter, package manager, etc.). |
 | [`spec-intent`](skills/spec-intent/SKILL.md) | `specs/INTENT/I-N-<slug>/intent.md` | When opening, refining, or superseding an intent. Each intent is its own folder with EARS outcomes; `experiments/` and `checks/` subfolders appear only on demand. Frontmatter `status` is derived by `spec-check`. |
-| [`spec-decisions`](skills/spec-decisions/SKILL.md) | `specs/DECISIONS.md` | When you make a non-trivial choice. Appends a one-line entry with rationale and an `[intent: I-N]` tag; supports supersession. Agent-writable. |
 | [`spec-check`](skills/spec-check/SKILL.md) | drift report (stdout) + `intent.md` frontmatter writeback | Manual or auto-invoked — after edits to any `intent.md` or `CONSTITUTION.md`, as a pre-PR audit, or on phrases like "check for drift" / "verify against spec". Iterates every open intent; writes `status`, `verdict_*`, and `closed` back to each `intent.md`. |
 
-> **`/plan` is not part of lite-spec.** It's Claude Code's built-in planning skill. `/spec-intent` *offers* to hand a freshly-written intent to `/plan` — which drafts a regenerable `plan.md` beside `intent.md` — but the handoff is opt-in. Say no and nothing external is needed; the five `spec-*` skills above are the whole toolkit. `intent.md` always stays the source of truth, `plan.md` is a working doc.
+> **`/plan` is not part of lite-spec.** It's Claude Code's built-in planning skill. `/spec-intent` *offers* to hand a freshly-written intent to `/plan` — which drafts a regenerable `plan.md` beside `intent.md` — but the handoff is opt-in. Say no and nothing external is needed; the four `spec-*` skills above are the whole toolkit. `intent.md` always stays the source of truth, `plan.md` is a working doc.
 
 ## How it fits together
 
-Plain Markdown, no external services. `CONSTITUTION.md` and the `INTENT/` tree are human-owned (skill-guided); `DECISIONS.md` is agent-writable. EARS outcomes (`WHEN <trigger> THE SYSTEM SHALL <response>`) let `spec-check` grade each SHALL against code and derive each intent's `status`. Decisions carry an `[intent: I-N]` tag linking them back.
+Plain Markdown, no external services. `CONSTITUTION.md` and the `INTENT/` tree are human-owned (skill-guided); each intent's optional `plan.md` is agent-writable. EARS outcomes (`WHEN <trigger> THE SYSTEM SHALL <response>`) let `spec-check` grade each SHALL against code and derive each intent's `status`.
 
 ## A worked example
 
@@ -141,15 +139,7 @@ You implemented the limiter and `test_rate_limit`, but not `test_window_reset` y
 - [ ] O-2: ... — fail (test not found at tests/test_login.py).
 ```
 
-Status flipped `draft → in_progress` on its own. Log the design choice you made along the way:
-
-```claude
-/spec-decisions   # "sliding window, because fixed windows allow 2x bursts at the boundary"
-```
-
-→ `- **D-1:** Chose sliding-window rate limiting because fixed windows allow 2x bursts at the boundary (2026-05-30). [intent: I-1]`
-
-(Had there been no open intent — say you were recording a repo-wide call like "adopt Postgres" — the entry would be tagged `[intent: none]` instead, no open intent required.)
+Status flipped `draft → in_progress` on its own, derived from the outcome that now passes.
 
 **4. Finish and confirm.** Write the second test, run `/spec-check` once more, and the last outcome flips:
 
@@ -184,7 +174,3 @@ The prompt file (`specs/INTENT/I-3-onboarding/checks/error_copy_tone.md`) is see
 - `verdict_outcomes_passed_by_test/_total` — passes verified by a process-runner test (strictest signal).
 
 Invariant: `_passed_by_test ≤ _passed ≤ _total`. Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM fallback. The goal is to drive `_passed_by_test/_total` toward 1.0 over time, falling back to the `agent:` runner only when a SHALL is genuinely unprogrammable.
-
-## Evaluating changes to the skills
-
-`evals/` holds an A/B evaluation harness for measuring whether a change to the `spec-` skills actually improves outcomes. Given two git refs (variant A and variant B), it runs each against a fixed task set and produces a deterministic accept/reject/inconclusive verdict from four evidence streams — deterministic spec-adherence, an LLM-as-judge pairwise rubric, process/cost metrics, and a constitution hard-veto. A `--mock-carrier` mode exercises the full pipeline without API spend or Docker; the real carrier drives `claude` per variant. See [`evals/README.md`](evals/README.md) for usage.
