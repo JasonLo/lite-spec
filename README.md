@@ -39,11 +39,12 @@ Creates `specs/` and wires the `CLAUDE.md` pointer block so future Claude sessio
 
 1. `/spec-constitution             # once: ratify project principles (amend later as needed)`
 1. `/spec-intent new "<title>"     # open a new intent: problem, EARS outcomes, non-goals`
+1. `... plan (optional) ...        # /spec-intent offers to hand the intent to /plan`
 1. `... write code ...`
 1. `/spec-decisions                # log non-trivial choices (or let Claude append directly)`
 1. `/spec-check                    # verify code still satisfies open intents + constitution`
 
-Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
+Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). After writing the intent, `/spec-intent` (in any of `new`/`refine`/`supersede`) offers to hand it to `/plan`; on yes, the resulting implementation plan is written to `specs/INTENT/I-N-<slug>/plan.md` — an agent-writable, regenerable sibling. Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
 
 ## The skills
 

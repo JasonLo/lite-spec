@@ -1,14 +1,14 @@
 ---
 name: spec-intent
 description: Draft, refine, or supersede an intent under specs/INTENT/I-N-<slug>/intent.md using EARS outcomes. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, wants to refine an existing intent, or wants to retire an intent in favor of a successor. Triggers on "write an intent doc", "spec this feature", "capture intent", "new intent", "draft intent", "refine intent", "supersede intent", "what's the intent", "/spec-intent".
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode
 ---
 
 # spec-intent
 
 You are the intent skill for **lite-spec**. You create, refine, and supersede intent docs under `specs/INTENT/I-N-<slug>/intent.md` — one folder per intent, with optional `experiments/` and `checks/` subfolders created on demand. Each intent doc captures **problem, outcome, non-goals, constraints, and change log**, with skill-managed frontmatter (`status`, `verdict_*`, `closed`) maintained by `spec-check`. Outcomes use EARS notation so drift can be checked mechanically.
 
-This skill has three subcommands: **`new`**, **`refine`**, and **`supersede`**.
+This skill has three subcommands: **`new`**, **`refine`**, and **`supersede`**. Each ends by offering to hand the intent to `/plan`, which can draft an optional agent-writable `plan.md` sibling in the same folder (see [Planning handoff](#planning-handoff)).
 
 ## Inputs
 
@@ -84,6 +84,7 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
     Do NOT overwrite an existing prompt file — the user may have authored it separately. Do NOT author the Success criteria body content beyond the placeholder paragraph above; populating it is the user's responsibility (see "Agent prompt files are user-owned" under "What This Skill MUST NOT Do"). For agent citations that point **outside** the intent's local `checks/` directory (a centralized prompt at e.g. `specs/checks/<name>.md`), do NOT create the directory or seed the file — only the local `checks/` convention triggers seeding.
 11. **Auto-trigger `spec-check --intent I-<N_new>`.** If `spec-check` is not installed, note that drift verification should be run manually once the implementation exists.
 12. **Report** the path, the assigned ID, word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved. Note that `spec-check` was auto-invoked and its report follows. Report the diff (or path + ID + counts as appropriate); defer the Next: line to the auto-triggered spec-check per the Handoff convention in spec-init. If spec-check is not installed, append a plain note that drift verification must be run manually.
+13. **Offer to plan the implementation** of `I-<N_new>`. Follow the [Planning handoff](#planning-handoff) below.
 
 ## Subcommand 2 — `refine [--intent I-N]`
 
@@ -101,6 +102,7 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
 8. **Seed agent prompt files** for any newly-added `[test: agent:<path>]` citations whose target lives under `specs/INTENT/I-N-<slug>/checks/`. Apply the same logic as step 10 of `new`: `mkdir -p` the parent directory; create the file pre-populated with the SHALL line under `## SHALL` and a `## Success criteria` placeholder, **only if the file does not yet exist**. Never overwrite. Refines that only modify existing agent citations (e.g., changing the prompt path) do NOT delete the old seed file — that's the user's call.
 9. **Auto-trigger `spec-check --intent I-N`.** A Change Log append means drift is possible; checking immediately is cheaper than discovering it later.
 10. **Report** the diff and any self-critique flags. Report the diff (or path + ID + counts as appropriate); defer the Next: line to the auto-triggered spec-check per the Handoff convention in spec-init. If spec-check is not installed, append a plain note that drift verification must be run manually.
+11. **Offer to plan the implementation** of `I-N`. Follow the [Planning handoff](#planning-handoff) below — a refinement may have moved the outcomes enough to warrant (re)planning.
 
 ## Subcommand 3 — `supersede --intent I-N --by-new "<title>"`
 
@@ -115,6 +117,18 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
    - Append `- **YYYY-MM-DD** — Superseded by I-<M>.` to its Change Log. Body sections (Problem, Outcome, Non-Goals, Constraints) are left untouched — they remain as the historical record of what I-N tried to do.
 5. **Auto-trigger `spec-check --intent I-<M>`** on the successor only — the predecessor is terminal and does not need re-checking. (`spec-check` will skip a `superseded` intent unless explicitly named.)
 6. **Report** both IDs, the successor's path, and any self-critique flags from the new draft. Report the diff (or path + ID + counts as appropriate); defer the Next: line to the auto-triggered spec-check per the Handoff convention in spec-init. If spec-check is not installed, append a plain note that drift verification must be run manually.
+7. **Offer to plan the implementation** of the successor `I-<M>` (the predecessor is terminal and gets no offer). Follow the [Planning handoff](#planning-handoff) below.
+
+## Planning handoff
+
+After an intent is written (`new`), refined (`refine`), or opened as a successor (`supersede`), offer to hand it straight to `/plan`. This is a **thin handoff** — you feed `/plan` the intent and point its output at the intent folder; you do NOT reimplement exploration, design, or approval here. `/plan` owns that loop.
+
+1. **Ask one yes/no question:** "Intent `I-N` is captured — want to plan its implementation now?" The offer is **opt-in**. On "no" or no response, stop — the handoff is complete and silence is the terminal signal.
+2. **If the just-run `spec-check` flagged unverifiable citations**, add a one-line aside that `/spec-intent refine` may be the better first move (to make the SHALLs mechanically checkable). Do NOT suppress the plan offer — just inform; the user decides.
+3. **On "yes", pass the intent to `/plan`.** Activate plan mode with `specs/INTENT/I-N-<slug>/intent.md` as the requirements input, and instruct `/plan` to **write its plan to `specs/INTENT/I-N-<slug>/plan.md`** — overriding `/plan`'s default plan-file location. From there, `/plan` runs its own workflow and owns the plan's format; `spec-intent`'s job ends.
+4. **Do NOT append a Change Log entry to `intent.md`** for the plan. The plan is not a change to the intent, and touching `intent.md` would bump its git timestamp and make `spec-check` report spurious `intent ahead` drift before any code exists. `plan.md` stands alone as a discoverable sibling.
+
+`plan.md` is **agent-writable** (like `DECISIONS.md`) and **regenerable** — `intent.md` remains the source of truth. Re-running the handoff after a `refine` simply overwrites the prior `plan.md`.
 
 ## EARS rules
 
@@ -168,3 +182,6 @@ A test citation MUST point at a single test (or a tight `-k` / `-t` / `-run` fil
 - NEVER inline an agent prompt body inside an `intent.md` outcome or sub-bullet. Prompts live in their own files under `specs/INTENT/I-N-<slug>/checks/`; citations carry only the path.
 - NEVER propose an `agent:` citation when a process runner would express the same SHALL. The agent runner is a strictly weaker signal and should be reached for only when the SHALL is unprogrammable.
 - NEVER author or rewrite the body of an existing prompt file. The skill creates the directory and seeds the file with the SHALL + a `## Success criteria` placeholder on first cite (step 10 of `new`, step 8 of `refine`); enriching `## Success criteria` and everything after is the user's responsibility. **Agent prompt files are user-owned.**
+- NEVER force planning. The [Planning handoff](#planning-handoff) is an opt-in offer — honor a "no" and stop.
+- NEVER reimplement `/plan`'s exploration/design/approval loop inside this skill. The handoff is thin: pass the intent in, point the output at `plan.md`, and let `/plan` run.
+- NEVER let `plan.md` become the source of truth. `intent.md` governs; `plan.md` is a regenerable, agent-writable working doc.
