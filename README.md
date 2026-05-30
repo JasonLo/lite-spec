@@ -4,6 +4,26 @@
 
 A toolkit of four Claude Code skills (the `spec-` family) for the AI-era spec workflow. Enough structure for a solo developer or small team to think clearly and capture intent, without the ceremony of GitHub Spec Kit, OpenSpec, or BMAD-METHOD.
 
+## Mental model
+
+Four artifacts, and one rule: you write intents, Claude writes code, `/spec-check` grades the code against each intent and **derives the status** — you never set it by hand.
+
+| Artifact | What it holds | Who owns it |
+|---|---|---|
+| `specs/CONSTITUTION.md` | Project-wide principles every intent must respect (optional) | You — via `/spec-constitution` |
+| `specs/INTENT/I-N-<slug>/intent.md` | One feature's problem + EARS outcomes | You — via `/spec-intent` |
+| `specs/INTENT/I-N-<slug>/plan.md` | Optional, regenerable implementation plan | The agent — via `/plan` |
+| `CLAUDE.md` pointer block | Wiring that tells Claude which files are which | `/spec-init` |
+
+An intent climbs a status ladder as more of its EARS outcomes pass:
+
+```text
+draft → in_progress → complete     (drops back if a passing outcome later breaks;
+                                    superseded = retired for a successor)
+```
+
+Everything else below is detail on those four files.
+
 ## Quickstart
 
 Requires [Claude Code](https://claude.com/claude-code). Skills are modular agent capabilities Claude Code loads from `./.claude/skills/` (per-project) or `~/.claude/skills/` (global).
@@ -37,11 +57,12 @@ Creates `specs/` and wires the `CLAUDE.md` pointer block so future Claude sessio
 
 ### Basic flow
 
-1. `/spec-constitution             # once: ratify project principles (amend later as needed)`
-1. `/spec-intent new "<title>"     # open a new intent: problem, EARS outcomes, non-goals`
+1. `/spec-intent new "<title>"     # open an intent: problem, EARS outcomes, non-goals`
 1. `... plan (optional) ...        # /spec-intent offers to hand the intent to /plan`
 1. `... write code ...`
-1. `/spec-check                    # verify code still satisfies open intents + constitution`
+1. `/spec-check                    # verify the code still satisfies your open intents`
+
+Optional, once you have a couple of intents: `/spec-constitution` locks in project-wide rules (test runner, linter, architecture) that every intent is then checked against. Intents work fine without it — add it when you want the guardrails.
 
 Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). After writing the intent, `/spec-intent` (in any of `new`/`refine`/`supersede`) offers to hand it to `/plan`; on yes, the resulting implementation plan is written to `specs/INTENT/I-N-<slug>/plan.md` — an agent-writable, regenerable sibling. Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
 
@@ -56,9 +77,9 @@ Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experi
 
 Two other forms count too: `IF <condition> THEN THE SYSTEM SHALL <response>` for invariants, and `WHILE <state> THE SYSTEM SHALL <response>` for continuous behavior. One outcome per line. That's the whole notation — the structure is what lets `/spec-check` grade each `SHALL` individually instead of vibe-checking the feature as a whole.
 
-### The lite path: test citations are opt-in
+### Context-only intents: test citations are opt-in
 
-Each outcome *may* carry a `[test: ...]` citation so `/spec-check` can grade it mechanically (see [Test-backed verdicts](#test-backed-verdicts)). **You don't have to.** An intent with no citations simply rests at `status: draft` — a living spec you and Claude read for context, not a graded one. That's a valid resting state, not an error: `/spec-check` reports the outcomes as `unverifiable` and stops, with a one-line note (no nagging). Add citations when you want the status to *mean something* ("the code provably still does this"); skip them when you just want to capture intent. The `draft → in_progress → complete` ladder only starts climbing once at least one outcome is citable.
+Each outcome *may* carry a `[test: ...]` citation so `/spec-check` can grade it mechanically (see [Test-backed verdicts](#test-backed-verdicts)). **You don't have to.** An intent with no citations is a *context-only intent* — it rests at `status: draft`, a living spec you and Claude read for context rather than one that's graded. That's a valid resting state, not an error: `/spec-check` reports the outcomes as `unverifiable` and stops, with a one-line note (no nagging). Add citations when you want the status to *mean something* ("the code provably still does this"); skip them when you just want to capture intent. The `draft → in_progress → complete` ladder only starts climbing once at least one outcome is citable.
 
 ## The skills
 
@@ -148,7 +169,9 @@ Status flipped `draft → in_progress` on its own, derived from the outcome that
 Status changes this run: I-1 in_progress → complete (closed 2026-05-30).
 ```
 
-You never typed `status: complete` — `spec-check` derived it from the outcomes passing. And if you'd skipped the `[test: ...]` citations entirely, I-1 would have rested at `draft` with both outcomes `unverifiable` — the [lite path](#the-lite-path-test-citations-are-opt-in): still a useful spec, just not a graded one.
+You never typed `status: complete` — `spec-check` derived it from the outcomes passing. And if you'd skipped the `[test: ...]` citations entirely, I-1 would have rested at `draft` with both outcomes `unverifiable` — a [context-only intent](#context-only-intents-test-citations-are-opt-in): still a useful spec, just not a graded one.
+
+**Why two ratios?** The header reads `2/2 outcomes passing, 2/2 by test`. The first counts every passing outcome; the second counts only those backed by a real test you can re-run. Here they match. Had an outcome instead been verified by an `agent:` check (for a SHALL no test can express — UX copy, doc structure), it would count toward the first ratio but not the second, and `spec-check` would still flip the intent to `complete` — with a one-line WARNING that the verdict leans on a weaker signal. Driving `by test` up to the full count is how you make `complete` mean *provably* complete.
 
 ## Test-backed verdicts
 
@@ -174,3 +197,19 @@ The prompt file (`specs/INTENT/I-3-onboarding/checks/error_copy_tone.md`) is see
 - `verdict_outcomes_passed_by_test/_total` — passes verified by a process-runner test (strictest signal).
 
 Invariant: `_passed_by_test ≤ _passed ≤ _total`. Outcomes without any `[test: ...]` citation are classified `unverifiable` — there is no grep + LLM fallback. The goal is to drive `_passed_by_test/_total` toward 1.0 over time, falling back to the `agent:` runner only when a SHALL is genuinely unprogrammable.
+
+## Glossary
+
+| Term | One-line meaning |
+|---|---|
+| **Intent** | One feature's spec — problem, outcomes, non-goals — in its own `I-N-<slug>/` folder. The unit of work. |
+| **Outcome** | A single success criterion inside an intent, written in EARS and graded on its own. |
+| **EARS** | The outcome grammar: `WHEN <trigger> THE SYSTEM SHALL <response>`. |
+| **Constitution** | Project-wide principles (`P-N`) every intent is checked against. Optional. |
+| **Status** | An intent's rung on `draft → in_progress → complete` (or `superseded`). Derived by `/spec-check`, never set by hand. |
+| **Test citation** | A `[test: <runner>:<target>]` marker that lets `/spec-check` grade an outcome by running real code. |
+| **Process runner** | A deterministic test runner (`pytest`, `vitest`, `jest`, `cargo`, `go`, `shell`). The strongest signal. |
+| **Agent runner** | A subagent that grades a SHALL no test can express (UX, docs). Weaker than a process runner. |
+| **Context-only intent** | An intent with no test citations — a spec you read for context, resting at `draft`. Not an error. |
+| **By-test ratio** | The share of passing outcomes backed by a process-runner test. Push it toward 100%. |
+| **Supersede** | Retire an intent in favor of a titled successor, preserving its history. |
