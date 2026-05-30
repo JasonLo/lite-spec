@@ -22,7 +22,10 @@ from typing import List
 EARS_PATTERN = re.compile(
     r"\bWHEN\b.*\bTHE\s+SYSTEM\s+SHALL\b", re.IGNORECASE | re.DOTALL
 )
-INTENT_TAG_PATTERN = re.compile(r"\[intent:\s*I-\d+\]")
+# A valid intent tag is either `[intent: I-N]` (tied to a feature intent) or
+# `[intent: none]` (a project-level decision not scoped to any single intent).
+# Both count as tagged; only a missing tag is an adherence failure.
+INTENT_TAG_PATTERN = re.compile(r"\[intent:\s*(?:I-\d+|none)\]")
 TEST_CITATION_PATTERN = re.compile(
     r"\[test:\s*(pytest|vitest|jest|cargo|go|shell|agent):"
 )

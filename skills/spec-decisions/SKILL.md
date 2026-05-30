@@ -12,7 +12,7 @@ You are the decisions skill for **lite-spec**. You maintain `specs/DECISIONS.md`
 - **D-N:** Decided X because Y (YYYY-MM-DD). [intent: I-N]
 ```
 
-The trailing `[intent: I-N]` tag links the decision to the intent it was made under, enabling `grep '\[intent: I-2\]' specs/DECISIONS.md` to enumerate one intent's decisions. Legacy untagged lines from before the tag rule are valid on read but never re-emitted.
+The trailing `[intent: I-N]` tag links the decision to the intent it was made under, enabling `grep '\[intent: I-2\]' specs/DECISIONS.md` to enumerate one intent's decisions. A decision that isn't scoped to any single feature — a project-level call like "adopt Postgres" or "drop Python 3.9 support" — carries `[intent: none]` instead. Both forms are valid tags; only a *missing* tag is non-conforming. Legacy untagged lines from before the tag rule are valid on read but never re-emitted.
 
 When a decision is reversed, supersession is captured as a structured tag pair — `[supersedes: D-N]` on the new entry and `[superseded-by: D-M, YYYY-MM-DD]` on the struck-through prior entry. The pair mirrors the `superseded_by:` field on `intent.md` frontmatter and makes the chain grep-able from either end. See **Supersession tag pair** below for the full grammar.
 
@@ -25,15 +25,15 @@ This skill has two modes: **append** (a new decision) and **supersede** (a past 
 - Optional `--intent I-N` flag to pin the tag explicitly.
 - If `specs/CONSTITUTION.md` exists, you MUST read it and validate the decision against it.
 
-## Resolving the `[intent: I-N]` tag
+## Resolving the intent tag
 
-Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order:
+Every new entry MUST carry an intent tag — either `[intent: I-N]` (tied to a feature intent) or `[intent: none]` (a project-level decision not scoped to any single intent). Resolve it in this order:
 
-1. If `--intent I-N` is passed, use it. If no folder matches `specs/INTENT/I-N-*/`, refuse and list existing IDs.
+1. If `--intent I-N` is passed, use it. If no folder matches `specs/INTENT/I-N-*/`, refuse and list existing IDs. If `--intent none` is passed, use `[intent: none]` directly.
 2. Otherwise, glob `specs/INTENT/I-*-*/intent.md` and read each frontmatter `status`. Collect those with `status` in `{draft, in_progress}` — the **open** intents.
    - Exactly one open intent ⇒ use its ID. Report the auto-fill choice in the run output.
-   - Zero open intents ⇒ refuse and tell the user to invoke `/spec-intent new` first (or pass `--intent I-N` to tag against a `complete` intent if that's genuinely what they want).
-   - Multiple open intents ⇒ prompt the user for `--intent I-N`. Do NOT guess.
+   - Multiple open intents ⇒ prompt the user: list every open intent ID **plus a `none` (project-level)** option. Do NOT guess.
+   - Zero open intents ⇒ do NOT refuse and do NOT force the user to open an intent. Treat the decision as project-level and tag it `[intent: none]`; report the choice in the run output. (If the decision genuinely belongs to a `complete`/`superseded` intent, the user passes `--intent I-N` explicitly.)
 
 ## Mode 1 — Append
 
@@ -52,7 +52,7 @@ Every new entry MUST carry an `[intent: I-N]` tag. Resolve the tag in this order
    ```
 
 10. **Check the `CLAUDE.md` pointer block.** Grep `CLAUDE.md` at the repo root for the marker `<!-- lite-spec:pointer-block:start -->`. If the marker is present, the pointer block is already wired; do nothing. If the marker is missing (or `CLAUDE.md` itself is missing), tell the user to run `/spec-init` to wire `CLAUDE.md`. Do NOT write any pointer text from this skill — `spec-init` is the single source of truth for `CLAUDE.md`.
-11. **Report** the new ID, the entry text including the resolved tag, how the tag was chosen (flag / auto / prompt), and confirmation that the constitution check passed. End the report with `Next: /spec-check --intent I-N` if the tagged intent's `status` is `draft` or `in_progress` (a logged decision usually implies code that should be re-verified against the intent). If the tag points at a `complete` or `superseded` intent, omit the `Next:` line. Follows the Handoff convention documented in `spec-init`.
+11. **Report** the new ID, the entry text including the resolved tag, how the tag was chosen (flag / auto / prompt / project-level), and confirmation that the constitution check passed. End the report with `Next: /spec-check --intent I-N` if the tagged intent's `status` is `draft` or `in_progress` (a logged decision usually implies code that should be re-verified against the intent). If the tag points at a `complete` or `superseded` intent, omit the `Next:` line. If the tag is `[intent: none]`, there is no intent to re-check — omit the `Next:` line. Follows the Handoff convention documented in `spec-init`.
 
 ## Mode 2 — Supersede
 
@@ -106,8 +106,8 @@ The struck-through wrapper (`- ~~...~~`) is the load-bearing signal — it is ma
 This skill is the **guided path** — it elicits, deduplicates, checks durability, resolves the intent tag, and reports a constitution-validation result. But `specs/DECISIONS.md` is agent-writable by design — AI agents MAY also write to it directly when speed matters, subject to these rules:
 
 1. **Read the constitution first.** If `specs/CONSTITUTION.md` exists, cross-check the proposed entry against every principle. If it violates a principle, do not write — surface the conflict and stop.
-2. **Resolve the `[intent: I-N]` tag** using the same rule as the guided path: explicit flag wins, else single open intent ⇒ infer, else escalate to the guided path. Direct writes MUST carry the tag — no untagged new entries.
-3. **Follow the format spec exactly.** `- **D-N:** Decided X because Y (YYYY-MM-DD). [intent: I-N]` — sequential integer ID with no zero-padding (scan existing entries for `max + 1`; existing IDs may be tagged or untagged — either counts), entry under 25 words excluding the tag, rationale must reference a tradeoff/constraint/external requirement (no bare "because we decided" or "because it's better").
+2. **Resolve the intent tag** using the same rule as the guided path: explicit flag wins, else single open intent ⇒ infer, else (zero open intents) ⇒ `[intent: none]` for a project-level decision; escalate to the guided path only when *multiple* open intents make the choice ambiguous. Direct writes MUST carry a tag — `[intent: I-N]` or `[intent: none]`, never untagged.
+3. **Follow the format spec exactly.** `- **D-N:** Decided X because Y (YYYY-MM-DD). [intent: I-N]` (or `[intent: none]` for a project-level decision) — sequential integer ID with no zero-padding (scan existing entries for `max + 1`; existing IDs may be tagged or untagged — either counts), entry under 25 words excluding the tag, rationale must reference a tradeoff/constraint/external requirement (no bare "because we decided" or "because it's better").
 4. **Dedup against existing entries.** Grep `specs/DECISIONS.md` for keywords from the proposed decision; match both tagged and untagged lines, but **exclude struck-through entries** (lines starting with `- ~~`, which have already been reversed). If a non-struck near-duplicate exists, do not write — either skip (the choice is already logged) or follow the supersession path (rule 6). When the duplicate call is ambiguous, escalate to this skill's guided path instead.
 5. **Never log phantom commitments.** Only record decisions settled *with the human in the current conversation* — made by the human, or proposed by AI and explicitly accepted by the human. Autonomous AI choices made without explicit human assent belong in chat or a PR description, not in `DECISIONS.md`.
 6. **Supersession via direct write is allowed.** Follow Mode 2 steps 5–6: strike the prior entry and append `[superseded-by: D-N, YYYY-MM-DD]` **outside** the `~~`, then append the new entry with `[intent: I-N] [supersedes: D-N]` tags trailing the rationale. Never delete a prior line. Never lead the new entry with "Supersedes D-N —" prose — the structured tag is the link.
@@ -118,7 +118,7 @@ When in doubt — durability is unclear, the human's position is ambiguous, the 
 ## Validation Rules You MUST Enforce
 
 - **Constitution validation is blocking.** If the decision violates a principle, refuse and surface the principle. Never silently log a violating decision.
-- **Every new entry carries `[intent: I-N]`.** Resolved via flag, single-open auto-pick, or prompt. Legacy untagged entries are valid on read but never re-emitted; never retroactively tag them.
+- **Every new entry carries an intent tag** — `[intent: I-N]` or `[intent: none]`. Resolved via flag, single-open auto-pick, prompt, or project-level default (zero open intents ⇒ `none`). Legacy untagged entries are valid on read but never re-emitted; never retroactively tag them.
 - **Every supersession carries the `[supersedes: D-N]` / `[superseded-by: D-M, date]` tag pair.** Both sides MUST be written in the same operation — never write one without the other. Legacy prose-form supersessions are valid on read but never re-emitted in the new format.
 - **A decision is superseded only once.** If the target already carries `[superseded-by: ...]`, refuse and direct the user to the current head of the chain.
 - **No silent deletion.** Editing `specs/DECISIONS.md` is fine; deleting past lines is not. The only mutations to a prior line are wrapping it in `~~` and appending the `[superseded-by: ...]` tag outside the strikethrough.
