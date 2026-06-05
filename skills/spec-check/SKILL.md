@@ -137,7 +137,7 @@ Print one combined report to stdout. Do NOT write the report to a file — drift
 
 ## Summary
 Intents checked: 2. Status changes this run: I-2 in_progress → complete (closed 2026-05-23).
-Across all intents: <N pass> (<X by test>), <F fail>, <U unverifiable>, <D intent-ahead>.
+Across all intents: <N>/<T> pass (<X by test>), <F fail>, <U unverifiable>, <D intent-ahead>.
 Test-citation coverage: <P>/<T> outcomes have a [test: ...] marker (<pct>%).
 Agent-runner usage: <A>/<T> outcomes cite agent: (<pct>%).
 
@@ -147,6 +147,8 @@ Next: /spec-intent refine I-1
 The `Next:` line is **conditional** and follows the Handoff convention documented in `spec-init`. Emit it **only** when at least one outcome in the run was classified `unverifiable` for a reason that `/spec-intent refine` can fix (missing citation, vague EARS, unknown runner, whole-suite citation, constitution-forbidden runner, agent prompt empty, agent prompt path outside repo, malformed agent citation, agent reply malformed, agent invocation error). Pick the lowest-numbered affected `I-N` **from the intents in this run's scope** — if invoked with `--intent I-K`, the affected intent is always `I-K` (it is the only intent in scope), regardless of unverifiable outcomes that may exist in other intents from prior runs. **Do NOT** emit `Next:` for `unverifiable (agent skipped)`, `unverifiable (--no-tests)`, `fail` outcomes, `intent-ahead` drift, or constitution-principle failures — the first two are user-opted run-mode artifacts (the user passed the flag), and the rest resolve in code or via `/spec-constitution amend` — `spec-check` can't tell which; the user's judgment owns the next move. When the run is clean (zero fail, zero unverifiable), omit `Next:` entirely — silence is the terminal signal.
 
 The bracketed status header per intent shows the **newly derived** status, the overall verdict ratio (`_passed`/`_total`), and the test-backed ratio (`_passed_by_test`/`_total`). The test-backed ratio is the strongest signal and the one to push toward 100%.
+
+In the Summary, the `<N>/<T> pass` ratio aggregates across every intent in the run: `<N>` is the sum of `verdict_outcomes_passed` and `<T>` is the sum of `verdict_outcomes_total` (graded outcomes only — unverifiable, skipped, and intent-ahead are excluded from `<T>`, consistent with the per-intent total).
 
 Each outcome line MUST mark its verdict source explicitly: `pass (test)`, `pass (agent)`, `fail (test)`, `fail (agent)`, `unverifiable (no test citation)`, `unverifiable (agent skipped)`, `unverifiable (--no-tests)`, or `unverifiable (<other reason>)`. A reader scanning the report should never wonder whether a verdict came from a deterministic test, from an LLM-graded check, or from no check at all.
 
