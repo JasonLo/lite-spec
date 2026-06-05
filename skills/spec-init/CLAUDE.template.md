@@ -15,6 +15,8 @@ Before generating output that touches design, architecture, scope, or behavior, 
 - **`specs/CONSTITUTION.md`** — non-negotiable principles. Every change to principles MUST go through `spec-constitution`; never edit silently.
 - **`specs/INTENT/`** — one folder per intent (`I-N-<slug>/intent.md`); `experiments/`, `checks/`, and an optional `plan.md` sibling appear only on demand. Open intents have `status: draft` or `in_progress`; finished ones have `status: complete` or `superseded`. Outcomes use EARS (`WHEN <trigger> THE SYSTEM SHALL <response>`). Load only the intents whose scope intersects your task. Create/refine/supersede via `spec-intent`; `spec-check` derives `status` from outcome pass-counts.
 
+When you're about to implement non-trivial behavior that no open intent covers, offer to capture it first via `/spec-intent propose` — it drafts an intent from context, the user accepts or refines, then you build. The offer is opt-in; if the user declines, proceed without it.
+
 ## Spec file ownership
 
 Two tiers:
@@ -30,7 +32,7 @@ This repo uses **lite-spec** — invoke the skills by name:
 
 - `/spec-init` — bootstrap or repair the lite-spec setup
 - `/spec-constitution` — ratify or amend principles (`specs/CONSTITUTION.md`)
-- `/spec-intent` — draft, refine, or supersede an intent (`specs/INTENT/I-N-<slug>/intent.md`)
+- `/spec-intent` — open (`new` interview or fast `propose` draft), refine, or supersede an intent (`specs/INTENT/I-N-<slug>/intent.md`)
 - `/spec-check` — drift report + status derivation across open intents
 
 <!-- lite-spec:pointer-block:end -->

@@ -11,7 +11,7 @@ Four artifacts, and one rule: you write intents, Claude writes code, `/spec-chec
 | Artifact | What it holds | Who owns it |
 |---|---|---|
 | `specs/CONSTITUTION.md` | Project-wide principles every intent must respect (optional) | You — via `/spec-constitution` |
-| `specs/INTENT/I-N-<slug>/intent.md` | One feature's problem + EARS outcomes | You — via `/spec-intent` |
+| `specs/INTENT/I-N-<slug>/intent.md` | One feature's problem + EARS outcomes | You — via `/spec-intent` (author it, or accept the agent's proposal) |
 | `specs/INTENT/I-N-<slug>/plan.md` | Optional, regenerable implementation plan | The agent — via `/plan` |
 | `CLAUDE.md` pointer block | Wiring that tells Claude which files are which | `/spec-init` |
 
@@ -62,9 +62,11 @@ Creates `specs/` and wires the `CLAUDE.md` pointer block so future Claude sessio
 1. `... write code ...`
 1. `/spec-check                    # verify the code still satisfies your open intents`
 
+**Two ways to open an intent.** `/spec-intent new "<title>"` interviews you section by section — you author it. `/spec-intent propose` flips that: the agent drafts the whole intent from context (problem, EARS outcomes, non-goals, constraints) and you just **accept or refine** it — a fast, capture-first path for when you'd rather build than answer a questionnaire. Either way nothing lands in `specs/INTENT/` until you approve, and Claude may proactively offer `propose` when it's about to build something no open intent covers.
+
 Optional, once you have a couple of intents: `/spec-constitution` locks in project-wide rules (test runner, linter, architecture) that every intent is then checked against. Intents work fine without it — add it when you want the guardrails.
 
-Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). After writing the intent, `/spec-intent` (in any of `new`/`refine`/`supersede`) offers to hand it to `/plan`; on yes, the resulting implementation plan is written to `specs/INTENT/I-N-<slug>/plan.md` — an agent-writable, regenerable sibling. Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
+Each `/spec-intent new` creates `specs/INTENT/I-N-<slug>/intent.md` (the `experiments/` and `checks/` subfolders are added only when something needs them). After writing the intent, `/spec-intent` (in any of `new`/`propose`/`refine`/`supersede`) offers to hand it to `/plan`; on yes, the resulting implementation plan is written to `specs/INTENT/I-N-<slug>/plan.md` — an agent-writable, regenerable sibling. Multiple intents may be open at once; `/spec-check` iterates every non-terminal intent and derives each one's `status` from outcome pass-counts.
 
 ### Writing outcomes: EARS in 60 seconds
 
@@ -87,7 +89,7 @@ Each outcome *may* carry a `[test: ...]` citation so `/spec-check` can grade it 
 |---|---|---|
 | [`spec-init`](skills/spec-init/SKILL.md) | `specs/` + `specs/INTENT/` scaffold + `CLAUDE.md` pointers | Once per repo. Bootstraps a project to use lite-spec (or repairs a partial setup). |
 | [`spec-constitution`](skills/spec-constitution/SKILL.md) | `specs/CONSTITUTION.md` | Once per project, plus amendments. Locks in non-negotiable principles every other skill validates against. In ratify mode, surveys the codebase first to propose candidate principles from observed conventions (test runner, linter, package manager, etc.). |
-| [`spec-intent`](skills/spec-intent/SKILL.md) | `specs/INTENT/I-N-<slug>/intent.md` | When opening, refining, or superseding an intent. Each intent is its own folder with EARS outcomes; `experiments/` and `checks/` subfolders appear only on demand. Frontmatter `status` is derived by `spec-check`. |
+| [`spec-intent`](skills/spec-intent/SKILL.md) | `specs/INTENT/I-N-<slug>/intent.md` | When opening (author it via `new`, or let the agent draft it via `propose` for you to accept/refine), refining, or superseding an intent. Each intent is its own folder with EARS outcomes; `experiments/` and `checks/` subfolders appear only on demand. Frontmatter `status` is derived by `spec-check`. |
 | [`spec-check`](skills/spec-check/SKILL.md) | drift report (stdout) + `intent.md` frontmatter writeback | Manual or auto-invoked — after edits to any `intent.md` or `CONSTITUTION.md`, as a pre-PR audit, or on phrases like "check for drift" / "verify against spec". Iterates every open intent; writes `status`, `verdict_*`, and `closed` back to each `intent.md`. |
 
 > **`/plan` is not part of lite-spec.** It's Claude Code's built-in planning skill. `/spec-intent` *offers* to hand a freshly-written intent to `/plan` — which drafts a regenerable `plan.md` beside `intent.md` — but the handoff is opt-in. Say no and nothing external is needed; the four `spec-*` skills above are the whole toolkit. `intent.md` always stays the source of truth, `plan.md` is a working doc.

@@ -1,6 +1,6 @@
 ---
 name: spec-intent
-description: Draft, refine, or supersede an intent under specs/INTENT/I-N-<slug>/intent.md using EARS outcomes. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, wants to refine an existing intent, or wants to retire an intent in favor of a successor. Triggers on "write an intent doc", "spec this feature", "capture intent", "new intent", "draft intent", "refine intent", "supersede intent", "what's the intent", "/spec-intent".
+description: Draft, propose, refine, or supersede an intent under specs/INTENT/I-N-<slug>/intent.md using EARS outcomes. Use when the user describes a new feature in loose terms, wants to capture intent before coding, asks for a spec, wants the agent to draft an intent for them to accept or refine, wants to refine an existing intent, or wants to retire an intent in favor of a successor. Triggers on "write an intent doc", "spec this feature", "capture intent", "new intent", "draft intent", "propose an intent", "draft an intent for me", "quick intent", "just build it and capture the intent", "refine intent", "supersede intent", "what's the intent", "/spec-intent", "/spec-intent propose".
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode
 ---
 
@@ -8,12 +8,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, EnterPlanMode, ExitPl
 
 You are the intent skill for **lite-spec**. You create, refine, and supersede intent docs under `specs/INTENT/I-N-<slug>/intent.md` — one folder per intent, with optional `experiments/` and `checks/` subfolders created on demand. Each intent doc captures **problem, outcome, non-goals, constraints, and change log**, with skill-managed frontmatter (`status`, `verdict_*`, `closed`) maintained by `spec-check`. Outcomes use EARS notation so drift can be checked mechanically.
 
-This skill has three subcommands: **`new`**, **`refine`**, and **`supersede`**. Each ends by offering to hand the intent to `/plan`, which can draft an optional agent-writable `plan.md` sibling in the same folder (see [Planning handoff](#planning-handoff)).
+This skill has four subcommands: **`new`**, **`propose`**, **`refine`**, and **`supersede`**. The two openers differ only in *who drafts*: with **`new`** you author the intent through a section-by-section interview; with **`propose`** the agent drafts the whole intent from context in one shot and you accept or refine it (a fast, capture-first path). Both write the identical artifact and both keep `specs/INTENT/` human-owned — `propose`'s accept is the write gate. Each subcommand ends by offering to hand the intent to `/plan`, which can draft an optional agent-writable `plan.md` sibling in the same folder (see [Planning handoff](#planning-handoff)).
 
 ## Inputs
 
 - The current working directory MUST be a project root and MUST contain `specs/INTENT/` (created by `/spec-init`). If it doesn't, refuse and tell the user to run `/spec-init`.
 - For `new`: a loose feature description and a title.
+- For `propose`: an optional title; the agent draws the rest from the conversation / feature context. Capture-first — no implementation code should be written until the user accepts the drafted intent.
 - For `refine`: optionally `--intent I-N` to scope to one intent; otherwise the skill auto-resolves (single open intent ⇒ use it; zero or many ⇒ prompt).
 - For `supersede`: `--intent I-N` (the intent being retired) and `--by-new "<title>"` (the successor's title).
 - If `specs/CONSTITUTION.md` exists, you MUST read it and validate your output against it.
@@ -86,7 +87,21 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
 12. **Report** the path, the assigned ID, word count (target <300 words for the body), the number of EARS outcomes, and any self-critique flags that were left unresolved. Note that `spec-check` was auto-invoked and its report follows. Report the diff (or path + ID + counts as appropriate); defer the Next: line to the auto-triggered spec-check per the Handoff convention in spec-init. If spec-check is not installed, append a plain note that drift verification must be run manually.
 13. **Offer to plan the implementation** of `I-<N_new>`. Follow the [Planning handoff](#planning-handoff) below.
 
-## Subcommand 2 — `refine [--intent I-N]`
+## Subcommand 2 — `propose ["<title>"]`
+
+The fast, **capture-first** path: instead of interviewing the user section by section, **you draft the whole intent from context, show it, and write only on the user's explicit accept.** This is `new` with the elicitation replaced by a single draft-and-approve loop — the human-owned boundary is preserved as an *accept-gate*, not an authoring interview. Reach for it when the user wants to capture intent quickly before building, or when you (the coding agent) are about to implement non-trivial behavior that no open intent covers.
+
+1. **Preconditions.** Same as `new`: the working directory MUST contain `specs/INTENT/` (else refuse and point the user to `/spec-init`). If `specs/CONSTITUTION.md` exists, read it and keep its principles in mind.
+2. **Gather context — don't interview.** Draw the intent from what the user has already described, or from the feature you're about to build in this conversation. A title argument is optional; if absent, propose one (the user can refine it). Do NOT walk the five-section questionnaire — that is `new`'s job, and reproducing it here defeats the purpose.
+3. **Assign the ID and slug** exactly as in `new` (steps 2–3): glob `specs/INTENT/I-*-*/`, compute `N_new = max(N) + 1`, derive the slug with the same edge-case rules. Do NOT create the folder yet.
+4. **Draft the whole intent in one shot.** From context, draft every section — **Problem**, **Outcome** (1–5 EARS statements, each with a `[test: <runner>:<target>]` citation), **Non-Goals**, **Constraints** — to the same standard `new` holds, following the [EARS rules](#ears-rules) and [Test citations](#test-citations) below. Because this is capture-first, the cited tests don't exist yet: cite the paths you intend to write (greenfield), exactly as `new` does. Then run the **self-critique pass** (step 7 of `new`) over your own draft and **validate it against the constitution** (step 8 of `new`).
+5. **Present the complete draft inline — do NOT write anything to disk.** Show the proposed `intent.md`: the assigned `I-<N_new>`, title, slug, and every section body with its citations. In the same message, surface: any unresolved self-critique flags, any constitution conflict you found, and a one-line note that the cited tests are greenfield (they will read `fail (test not found)` until written — the correct pre-implementation signal).
+6. **Accept-gate and refine loop.** Ask one explicit question: *"Accept and write `I-<N_new>`, or tell me what to change?"*
+   - On a change request → revise the in-conversation draft, re-present it (step 5), and ask again. Loop until the user accepts. **Nothing is written to `specs/INTENT/` during this loop.**
+   - A constitution conflict MUST be resolved before accept — revise the draft, or have the user amend via `/spec-constitution`. Never finalize an intent that violates a principle.
+7. **On accept, finalize.** Create the folder (`mkdir -p specs/INTENT/I-<N_new>-<slug>/`, no `experiments/` subdir — lazy, like `checks/`) and run the same write-and-handoff sequence as `new` steps 9–13: write `intent.md` from [`INTENT.template.md`](INTENT.template.md), seed agent-prompt files for any local `agent:` citations, auto-trigger `spec-check --intent I-<N_new>`, report, and offer the [Planning handoff](#planning-handoff). "Accept with edits" (the user tweaks wording as they approve) is still an accept — fold the edits in and finalize.
+
+## Subcommand 3 — `refine [--intent I-N]`
 
 1. **Resolve the target intent.**
    - If `--intent I-N` is passed, use it. If no folder matches `specs/INTENT/I-N-*/`, refuse and list the existing IDs.
@@ -104,7 +119,7 @@ verdict_checked_at: null              # SKILL-MANAGED by spec-check
 10. **Report** the diff and any self-critique flags. Report the diff (or path + ID + counts as appropriate); defer the Next: line to the auto-triggered spec-check per the Handoff convention in spec-init. If spec-check is not installed, append a plain note that drift verification must be run manually.
 11. **Offer to plan the implementation** of `I-N`. Follow the [Planning handoff](#planning-handoff) below — a refinement may have moved the outcomes enough to warrant (re)planning.
 
-## Subcommand 3 — `supersede --intent I-N --by-new "<title>"`
+## Subcommand 4 — `supersede --intent I-N --by-new "<title>"`
 
 1. **Resolve `I-N`.** If `--intent` is missing, apply the same single-open-auto-pick rule as `refine`. If the resolved intent already has `status: superseded`, refuse — an intent can be superseded only once.
 2. **Read the constitution.**
@@ -172,7 +187,7 @@ A test citation MUST point at a single test (or a tight `-k` / `-t` / `-run` fil
 
 - NEVER write outcomes in non-EARS prose.
 - NEVER delete or rewrite past Change Log entries — they are append-only.
-- NEVER touch skill-managed frontmatter fields (`status`, `closed`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_test`, `verdict_outcomes_total`, `verdict_checked_at`) directly — only `spec-check` writes those. **Exception:** the `supersede` subcommand sets `status: superseded`, `superseded_by: I-<M>`, and `closed: <today>` on the predecessor (step 4 of subcommand 3). That is the one documented mutation of skill-managed fields by `spec-intent`; all other writes to these fields are forbidden.
+- NEVER touch skill-managed frontmatter fields (`status`, `closed`, `verdict_outcomes_passed`, `verdict_outcomes_passed_by_test`, `verdict_outcomes_total`, `verdict_checked_at`) directly — only `spec-check` writes those. **Exception:** the `supersede` subcommand sets `status: superseded`, `superseded_by: I-<M>`, and `closed: <today>` on the predecessor (step 4 of subcommand 4). That is the one documented mutation of skill-managed fields by `spec-intent`; all other writes to these fields are forbidden.
 - NEVER hand-edit `superseded_by` outside the `supersede` subcommand. The chain `I-N → superseded_by → I-M` is the durable handle that spec-check uses to skip terminal intents. Breaking it silently invalidates downstream skills.
 - NEVER rename an existing `I-N-<slug>/` folder. The folder name is the durable handle that `superseded_by` relies on.
 - NEVER finalize an intent that violates `specs/CONSTITUTION.md`. Surface the conflict instead.
@@ -185,3 +200,5 @@ A test citation MUST point at a single test (or a tight `-k` / `-t` / `-run` fil
 - NEVER force planning. The [Planning handoff](#planning-handoff) is an opt-in offer — honor a "no" and stop.
 - NEVER reimplement `/plan`'s exploration/design/approval loop inside this skill. The handoff is thin: pass the intent in, point the output at `plan.md`, and let `/plan` run.
 - NEVER let `plan.md` become the source of truth. `intent.md` governs; `plan.md` is a regenerable, agent-writable working doc.
+- NEVER write `intent.md`, create the intent folder, or seed any file in `propose` mode before the user explicitly accepts the drafted intent. The draft lives only in the conversation until accept — that accept *is* the human-owned write gate.
+- NEVER treat the `propose` accept-gate as license to skip approval. Delegating the *drafting* of an intent to the agent never delegates its *approval*; `specs/INTENT/` stays human-owned. "Accept with edits" counts as approval; silence or a change request does not.
