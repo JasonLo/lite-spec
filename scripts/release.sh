@@ -2,8 +2,8 @@
 # lite-spec version bumper + release tool.
 #
 # Usage:
-#   scripts/bump-version.sh {major|minor|patch}              # bump + commit + tag + push + gh release
-#   scripts/bump-version.sh {major|minor|patch} --bump-only  # only edit the manifest, no git/release
+#   scripts/release.sh {major|minor|patch}              # bump + commit + tag + push + gh release
+#   scripts/release.sh {major|minor|patch} --bump-only  # only edit the manifest, no git/release
 #
 # Full mode (default) performs, in order:
 #   1. Bumps "version" in .claude-plugin/plugin.json (single source of truth)
@@ -59,10 +59,25 @@ if [ "$BUMP_ONLY" -eq 0 ]; then
         echo "       re-run with --bump-only to skip the release step." >&2
         exit 1
     }
+    gh auth status >/dev/null 2>&1 || {
+        echo "error: gh not authenticated — run 'gh auth login'." >&2
+        echo "       re-run with --bump-only to skip the release step." >&2
+        exit 1
+    }
     if [ -n "$(git status --porcelain)" ]; then
         echo "error: working tree not clean — commit or stash before releasing." >&2
         git status --short >&2
         exit 1
+    fi
+    # Refuse to release a HEAD that has diverged from its upstream: behind means
+    # we'd tag stale code, ahead means we'd tag commits the remote hasn't seen.
+    git fetch origin >/dev/null 2>&1 || true
+    UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+    if [ -n "$UPSTREAM" ]; then
+        BEHIND="$(git rev-list --count "HEAD..$UPSTREAM")"
+        AHEAD="$(git rev-list --count "$UPSTREAM..HEAD")"
+        [ "$BEHIND" -eq 0 ] || { echo "error: behind $UPSTREAM by $BEHIND commits — pull first." >&2; exit 1; }
+        [ "$AHEAD" -eq 0 ] || { echo "error: $AHEAD unpushed commits — push them first." >&2; exit 1; }
     fi
 fi
 
@@ -127,12 +142,21 @@ git add "$PLUGIN"
 git commit -m "chore: release ${TAG}"
 
 echo "→ tag ${TAG}"
-git tag "${TAG}"
+git tag -a "${TAG}" -m "${TAG}"
 
-echo "→ push origin ${BRANCH} --follow-tags"
-git push origin "${BRANCH}" --follow-tags
+echo "→ push origin ${BRANCH} ${TAG} (atomic)"
+if ! git push --atomic origin "${BRANCH}" "${TAG}"; then
+    echo "error: push failed — rolling back local commit and tag." >&2
+    git tag -d "${TAG}" >/dev/null 2>&1 || true
+    git reset --mixed HEAD~1 >/dev/null 2>&1 || true
+    exit 1
+fi
 
 echo "→ gh release create ${TAG}"
-gh release create "${TAG}" --generate-notes --title "${TAG}"
+if ! gh release create "${TAG}" --generate-notes --title "${TAG}"; then
+    echo "error: gh release failed, but ${TAG} is already pushed. Finish with:" >&2
+    echo "  gh release create ${TAG} --generate-notes --title ${TAG}" >&2
+    exit 1
+fi
 
 echo "done: released ${TAG}"
